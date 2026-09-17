@@ -108,7 +108,7 @@ export function renewSession(refreshToken: string): Promise<Tokens> {
 
 async function doRenew(refreshToken: string): Promise<Tokens> {
   try {
-    const tokens = await request<Tokens>('/auth/refresh', {
+    const tokens = await request<Tokens>('/api/v1/auth/refresh', {
       method: 'POST',
       body: { refreshToken },
     });

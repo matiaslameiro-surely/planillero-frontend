@@ -1,7 +1,7 @@
 import { request, requestWithAuth } from '@/api/client';
 import type { Tokens } from '@/auth/tokenStore';
 
-/** Usuario autenticado, tal como lo devuelve `GET /auth/me`. */
+/** Usuario autenticado, tal como lo devuelve `GET /api/v1/auth/me`. */
 export interface Me {
   username: string;
   roles: string[];
@@ -33,7 +33,7 @@ interface LoginResponse {
  * completar con `verifyTwoFactor`.
  */
 export async function login(username: string, password: string): Promise<LoginResult> {
-  const response = await request<LoginResponse>('/auth/login', {
+  const response = await request<LoginResponse>('/api/v1/auth/login', {
     method: 'POST',
     body: { username, password },
   });
@@ -56,7 +56,7 @@ export async function login(username: string, password: string): Promise<LoginRe
 
 /** Completa el login con el código TOTP y devuelve los tokens de la sesión. */
 export function verifyTwoFactor(challengeId: string, code: string): Promise<Tokens> {
-  return request<Tokens>('/auth/verify-2fa', {
+  return request<Tokens>('/api/v1/auth/verify-2fa', {
     method: 'POST',
     body: { challengeId, code },
   });
@@ -64,25 +64,25 @@ export function verifyTwoFactor(challengeId: string, code: string): Promise<Toke
 
 /** Revoca la sesión en el backend. */
 export function logout(refreshToken: string): Promise<void> {
-  return request<void>('/auth/logout', { method: 'POST', body: { refreshToken } });
+  return request<void>('/api/v1/auth/logout', { method: 'POST', body: { refreshToken } });
 }
 
 /** Datos del usuario autenticado. */
 export function getMe(): Promise<Me> {
-  return requestWithAuth<Me>('/auth/me');
+  return requestWithAuth<Me>('/api/v1/auth/me');
 }
 
 /** Genera un secreto TOTP pendiente de confirmación. */
 export function setupTwoFactor(): Promise<TwoFactorSetup> {
-  return requestWithAuth<TwoFactorSetup>('/auth/2fa/setup', { method: 'POST' });
+  return requestWithAuth<TwoFactorSetup>('/api/v1/auth/2fa/setup', { method: 'POST' });
 }
 
 /** Confirma el secreto pendiente y activa el 2FA. */
 export function enableTwoFactor(code: string): Promise<void> {
-  return requestWithAuth<void>('/auth/2fa/enable', { method: 'POST', body: { code } });
+  return requestWithAuth<void>('/api/v1/auth/2fa/enable', { method: 'POST', body: { code } });
 }
 
 /** Desactiva el 2FA. */
 export function disableTwoFactor(code: string): Promise<void> {
-  return requestWithAuth<void>('/auth/2fa/disable', { method: 'POST', body: { code } });
+  return requestWithAuth<void>('/api/v1/auth/2fa/disable', { method: 'POST', body: { code } });
 }
