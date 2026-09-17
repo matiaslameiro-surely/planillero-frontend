@@ -32,6 +32,28 @@ npx tsc --noEmit    # chequeo de tipos
 npm test            # tests con Jest
 ```
 
+## Autenticación
+
+La app implementa el flujo completo de sesión contra el backend:
+
+- **Login**: `POST /auth/login` → si el usuario tiene 2FA habilitado, pide código TOTP en segundo paso (`POST /auth/verify-2fa`).
+- **Tokens**: access token (JWT) + refresh token (opaco) se guardan en **SecureStore** (Keychain en iOS, Keystore en Android, respaldado por hardware). En plataformas sin almacén seguro (web, tests) hay un respaldo en memoria.
+- **Bearer automático**: el cliente HTTP (`src/api/client.ts`) adjunta `Authorization: Bearer <accessToken>` en cada petición autenticada.
+- **Refresh transparente**: ante `401` por access token expirado, el cliente refresca con el refresh token (rotativo, el viejo queda invalidado), reintenta la petición original y actualiza los tokens en SecureStore. Si el refresh falla, cierra la sesión y redirige al login.
+- **Cierre de sesión**: `POST /auth/logout` revoca el refresh token y limpia SecureStore.
+- **2FA**: pantallas dedicadas para habilitar/deshabilitar (`/auth/2fa/setup`, `/auth/2fa/enable`, `/auth/2fa/disable`), accesibles desde la sesión autenticada.
+
+### Archivos clave
+
+| Archivo | Qué hace |
+|---|---|
+| `src/auth/tokenStore.ts` | Leer/escribir/borrar tokens en SecureStore (con fallback memoria). |
+| `src/auth/SessionContext.tsx` | Estado de sesión (usuario, roles, `signIn`, `signOut`), proveedor React. |
+| `src/api/auth.ts` | `login`, `verifyTwoFactor`, `logout`, `getMe`, `setup/enable/disableTwoFactor`. |
+| `src/api/client.ts` | Cliente HTTP: Bearer, manejo de 401→refresh→reintento, unión discriminada para errores de red. |
+| `src/app/login.tsx` | Pantalla de login con paso 2FA y mensajes que no revelan qué campo falló. |
+| `src/app/_layout.tsx` | Envuelve la app con `SessionProvider` y protege rutas. |
+
 ## Conexión con el backend
 
 La pantalla inicial consulta `GET /salud` del backend y muestra si hay conexión. Es el diagnóstico
@@ -53,24 +75,38 @@ En el emulador de Android, `localhost` es el propio emulador y no la máquina qu
 `10.0.2.2`. En un teléfono físico hace falta la IP de tu computadora en la red local, y que las dos
 estén en la misma red.
 
-El backend todavía no está desplegado en ningún servidor: hoy sólo corre local
-(`cd ../backend && ./mvnw spring-boot:run`).
+El backend corre local (`cd ../backend && ./mvnw spring-boot:run`).
+
+### Verificar el flujo completo
+
+1. Levantar backend y frontend.
+2. Abrir la app → pantalla de login.
+3. Ingresar `operador.demo / Operador123!` → entra directo (sin 2FA), muestra home con usuario/rol y estado de `/salud`.
+4. Cerrar sesión → vuelve al login.
+5. Ingresar `supervisor.demo / Supervisor123!` tras haber habilitado 2FA → pide código TOTP → tras código correcto, entra a home.
 
 ## Estructura
 
 ```
 src/
 ├── app/                  # rutas (expo-router: cada archivo es una pantalla)
-│   ├── _layout.tsx       # layout raíz
-│   └── index.tsx         # pantalla inicial
+│   ├── _layout.tsx       # layout raíz + SessionProvider + rutas protegidas
+│   ├── index.tsx         # home protegida: usuario, rol, estado /salud, cerrar sesión
+│   └── login.tsx         # formulario login + paso 2FA
 ├── api/
-│   ├── cliente.ts        # cliente HTTP del backend
-│   └── cliente.test.ts
-└── constants/
-    └── env.ts            # única lectura de variables de entorno
+│   ├── client.ts         # HTTP: Bearer, 401→refresh→reintento, unión discriminada
+│   ├── auth.ts           # login, verify-2fa, logout, me, 2FA setup/enable/disable
+│   └── client.test.ts    # tests: Bearer, 401→refresh, errores de red
+├── auth/
+│   ├── tokenStore.ts     # SecureStore (con fallback memoria)
+│   ├── SessionContext.tsx # sesión + proveedor
+│   └── tokenStore.test.ts
+├── constants/
+│   └── env.ts            # única lectura de variables de entorno
+└── ...
 ```
 
-El alias `@/` apunta a `src/`. Importá `@/api/cliente`, no rutas relativas largas.
+El alias `@/` apunta a `src/`. Importá `@/api/client`, no rutas relativas largas.
 
 ### Convenciones
 
