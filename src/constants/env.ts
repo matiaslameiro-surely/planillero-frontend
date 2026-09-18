@@ -11,13 +11,13 @@
  */
 
 /** URL base del backend, sin barra final. */
-export const URL_API: string = normalizarUrl(
+export const API_URL: string = normalizeUrl(
   process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8080',
 );
 
 /** Milisegundos antes de dar por perdida una petición. */
 export const TIMEOUT_MS = 10_000;
 
-function normalizarUrl(url: string): string {
+function normalizeUrl(url: string): string {
   return url.replace(/\/+$/, '');
 }
