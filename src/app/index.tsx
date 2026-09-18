@@ -1,4 +1,4 @@
-import { Redirect } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -39,6 +39,7 @@ function Loading() {
 
 function SignedInHome() {
   const { user, signOut } = useSession();
+  const router = useRouter();
   const [health, setHealth] = useState<HealthState>({ kind: 'checking' });
 
   const check = useCallback(async () => {
@@ -67,6 +68,15 @@ function SignedInHome() {
         <HealthIndicator health={health} />
         <Text style={styles.url}>{API_URL}</Text>
       </View>
+
+      {user?.roles.includes('OPERATOR') ? (
+        <Pressable
+          style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+          onPress={() => router.push('/agenda')}
+          accessibilityRole="button">
+          <Text style={styles.buttonText}>Hoja de ruta</Text>
+        </Pressable>
+      ) : null}
 
       <Pressable
         style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}

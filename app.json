@@ -35,7 +35,19 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-sqlite",
+        {
+          "useSQLCipher": true
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Planillero usa tu ubicación para registrar el inicio de cada visita."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
