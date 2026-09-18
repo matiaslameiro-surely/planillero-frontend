@@ -18,6 +18,20 @@ export class LocationError extends Error {
   }
 }
 
+/**
+ * Milisegundos que se espera un fix antes de darlo por perdido. Sin cielo abierto el proveedor puede
+ * tardar mucho y el operador se quedaría mirando un botón colgado.
+ */
+export const FIX_TIMEOUT_MS = 15_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('timeout')), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 /** Ubicación capturada al iniciar una visita. */
 export interface VisitLocation {
   latitude: number;
@@ -49,7 +63,10 @@ export async function captureLocation(): Promise<VisitLocation> {
 
   let position: Location.LocationObject;
   try {
-    position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+    position = await withTimeout(
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
+      FIX_TIMEOUT_MS,
+    );
   } catch {
     throw new LocationError('No se pudo obtener la posición.', 'no_fix');
   }

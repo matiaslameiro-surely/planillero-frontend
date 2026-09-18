@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 
-import { captureLocation, LocationError } from '@/visit/location';
+import { captureLocation, FIX_TIMEOUT_MS, LocationError } from '@/visit/location';
 
 /**
  * Tests de la captura de ubicación.
@@ -114,6 +114,20 @@ describe('captureLocation', () => {
     getPosition.mockRejectedValue(new Error('Location request timed out'));
 
     expect((await errorOf(captureLocation())).code).toBe('no_fix');
+  });
+
+  it('falla con no_fix si el proveedor no responde a tiempo', async () => {
+    jest.useFakeTimers();
+    try {
+      getPosition.mockReturnValue(new Promise(() => {}));
+
+      const pending = errorOf(captureLocation());
+      await jest.advanceTimersByTimeAsync(FIX_TIMEOUT_MS);
+
+      expect((await pending).code).toBe('no_fix');
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('falla con no_fix si la lectura no informa la precisión', async () => {
