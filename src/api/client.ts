@@ -28,6 +28,7 @@ interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   accessToken?: string;
+  headers?: Record<string, string>;
 }
 
 /**
@@ -41,18 +42,28 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    if (options.body !== undefined) {
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      ...(options.headers ?? {}),
+    };
+    if (options.body !== undefined && !isFormData) {
       headers['Content-Type'] = 'application/json';
     }
     if (options.accessToken) {
       headers.Authorization = `Bearer ${options.accessToken}`;
     }
 
+    const requestBody = isFormData
+      ? (options.body as FormData)
+      : options.body === undefined
+        ? undefined
+        : JSON.stringify(options.body);
+
     const response = await fetch(`${API_URL}${path}`, {
       method: options.method ?? 'GET',
       headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body: requestBody,
       signal: controller.signal,
     });
 
