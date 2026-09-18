@@ -31,7 +31,7 @@ export function DeviceStatusBar({ online, batteryLevel, gps, pendingVisits }: De
   const pending = pendingVisits === 1 ? '1 visita pendiente' : `${pendingVisits} visitas pendientes`;
 
   return (
-    <View style={styles.bar} accessibilityRole="header" accessibilityLabel="Estado del dispositivo">
+    <View style={styles.bar} accessibilityRole="summary" accessibilityLabel="Estado del dispositivo">
       <View style={[styles.mode, online ? styles.modeOnline : styles.modeOffline]}>
         <Text style={styles.modeText}>{online ? 'Modo conectado' : 'Modo offline'}</Text>
       </View>

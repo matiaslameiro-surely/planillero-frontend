@@ -11,12 +11,13 @@ const KEY_PATTERN = /^[0-9a-f]{64}$/;
  * Convierte un identificador de operador en algo apto para nombres de clave y de archivo.
  *
  * `expo-secure-store` sólo admite letras, números, `.`, `-` y `_` en sus claves, y un nombre de
- * usuario puede traer otros caracteres. La codificación en hexadecimal es reversible, así que dos
- * operadores distintos nunca comparten clave ni archivo.
+ * usuario puede traer otros caracteres. Cada carácter se codifica en hexadecimal con ancho fijo
+ * (6 dígitos alcanzan para cualquier punto de código Unicode), así que la codificación es reversible
+ * y dos operadores distintos nunca comparten clave ni archivo.
  */
 export function ownerSlug(ownerId: string): string {
   return Array.from(ownerId)
-    .map((char) => char.codePointAt(0)!.toString(16).padStart(4, '0'))
+    .map((char) => char.codePointAt(0)!.toString(16).padStart(6, '0'))
     .join('');
 }
 

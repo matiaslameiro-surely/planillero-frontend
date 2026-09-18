@@ -93,4 +93,11 @@ describe('ownerSlug', () => {
   it('distingue identificadores que un reemplazo simple confundiría', () => {
     expect(ownerSlug('a@b')).not.toBe(ownerSlug('a_b'));
   });
+
+  it('usa ancho fijo por carácter, también para los que están fuera del plano básico', () => {
+    // Con ancho variable, "😀" + "A" y otras combinaciones podrían dar la misma cadena.
+    expect(ownerSlug('😀')).toHaveLength(6);
+    expect(ownerSlug('A')).toHaveLength(6);
+    expect(ownerSlug('😀A')).toBe(ownerSlug('😀') + ownerSlug('A'));
+  });
 });
