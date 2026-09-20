@@ -125,9 +125,15 @@ export default function EvidenceScreen() {
             photos: draftPhotos.length,
             signature: signatureData != null,
           });
-        } catch {
-          // La traza es un registro local best-effort: no bloquea el flujo de la visita.
+        } catch (error) {
+          // La traza es un registro local best-effort: no bloquea el flujo de la visita, pero
+          // queda el rastro en consola para detectar en QA si el criterio 8 falla en la práctica.
+          console.warn('No se pudo registrar la traza de auditoría de la evidencia.', error);
         }
+      } else {
+        console.warn(
+          `No se registró la traza de auditoría de la evidencia: base local en estado "${database.status}".`,
+        );
       }
       Alert.alert('Éxito', 'Evidencias subidas y almacenadas con política WORM.');
     } catch (err: unknown) {

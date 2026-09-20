@@ -79,11 +79,19 @@ export async function startVisit(db: SQLiteDatabase, visitId: string): Promise<S
     // Ver la nota de arriba: la próxima sincronización repara la copia local.
   }
   try {
-    await insertTrace(db, response.visitId, 'VISIT_STARTED', {
-      latitude: response.latitude,
-      longitude: response.longitude,
-      accuracyMeters: response.accuracyMeters,
-    });
+    await insertTrace(
+      db,
+      response.visitId,
+      'VISIT_STARTED',
+      {
+        latitude: response.latitude,
+        longitude: response.longitude,
+        accuracyMeters: response.accuracyMeters,
+      },
+      // Timestamp autoritativo del servidor, no el reloj del dispositivo: es el mismo que ya
+      // valida el drift en el backend, y esta traza sostiene trazabilidad legal.
+      response.startedAtServer,
+    );
   } catch {
     // La traza es un registro local best-effort: no bloquea el flujo de la visita.
   }

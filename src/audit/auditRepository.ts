@@ -33,18 +33,30 @@ function toAuditTrace(row: AuditTraceRow): AuditTrace {
  *
  * No se transmite: TASK-09 (el motor de sincronización) todavía no existe. Esta tabla sólo deja el
  * dato con la forma correcta para cuando exista.
+ *
+ * `occurredAt` es opcional: cuando el llamador ya tiene un timestamp autoritativo (por ejemplo,
+ * `startedAtServer` de la respuesta del backend al iniciar una visita), hay que pasarlo, porque el
+ * reloj del dispositivo puede estar desfasado y esta traza sostiene trazabilidad legal. A falta de
+ * uno, se usa la hora local del dispositivo.
  */
 export async function insertTrace(
   db: SQLiteDatabase,
   visitId: string,
   eventType: string,
   metadata?: Record<string, unknown>,
+  occurredAt?: string,
 ): Promise<void> {
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   await db.runAsync(
     `INSERT INTO visit_audit_traces (id, visit_id, event_type, occurred_at, metadata)
      VALUES (?, ?, ?, ?, ?)`,
-    [id, visitId, eventType, new Date().toISOString(), metadata ? JSON.stringify(metadata) : null],
+    [
+      id,
+      visitId,
+      eventType,
+      occurredAt ?? new Date().toISOString(),
+      metadata ? JSON.stringify(metadata) : null,
+    ],
   );
 }
 
