@@ -20,6 +20,8 @@ import {
   type VerificationResultResponse,
 } from '@/api/evidence';
 import { SignaturePad } from '@/components/SignaturePad';
+import { insertTrace } from '@/audit/auditRepository';
+import { useDatabase } from '@/db/DatabaseProvider';
 
 interface LocalPhotoDraft {
   id: string;
@@ -32,6 +34,7 @@ interface LocalPhotoDraft {
 export default function EvidenceScreen() {
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
   const router = useRouter();
+  const database = useDatabase();
 
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -116,6 +119,16 @@ export default function EvidenceScreen() {
       setDraftPhotos([]);
       setSignatureData(null);
       await loadData();
+      if (database.status === 'ready') {
+        try {
+          await insertTrace(database.db, visitId, 'EVIDENCE_SAVED', {
+            photos: draftPhotos.length,
+            signature: signatureData != null,
+          });
+        } catch {
+          // La traza es un registro local best-effort: no bloquea el flujo de la visita.
+        }
+      }
       Alert.alert('Éxito', 'Evidencias subidas y almacenadas con política WORM.');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al subir evidencias';

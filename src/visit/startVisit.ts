@@ -3,6 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { ApiError } from '@/api/client';
 import { startVisit as postStartVisit, type StartVisitResponse } from '@/api/visits';
 import { markStarted } from '@/agenda/agendaRepository';
+import { insertTrace } from '@/audit/auditRepository';
 import { captureLocation, LocationError, type LocationErrorCode } from '@/visit/location';
 
 /** Por qué no se pudo iniciar la visita. */
@@ -76,6 +77,15 @@ export async function startVisit(db: SQLiteDatabase, visitId: string): Promise<S
     await markStarted(db, response);
   } catch {
     // Ver la nota de arriba: la próxima sincronización repara la copia local.
+  }
+  try {
+    await insertTrace(db, response.visitId, 'VISIT_STARTED', {
+      latitude: response.latitude,
+      longitude: response.longitude,
+      accuracyMeters: response.accuracyMeters,
+    });
+  } catch {
+    // La traza es un registro local best-effort: no bloquea el flujo de la visita.
   }
   return { kind: 'started', response };
 }
