@@ -5,6 +5,13 @@ import { useColorScheme } from 'react-native';
 import { SessionProvider } from '@/auth/SessionContext';
 import { DatabaseProvider } from '@/db/DatabaseProvider';
 
+import { useHeartbeat } from '@/status/useHeartbeat';
+
+function HeartbeatEmitter() {
+  useHeartbeat();
+  return null;
+}
+
 /**
  * Layout raíz de la aplicación.
  *
@@ -19,6 +26,7 @@ export default function RootLayout() {
     <SessionProvider>
       <DatabaseProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <HeartbeatEmitter />
           <Stack screenOptions={{ headerShown: false }} />
           <StatusBar style="auto" />
         </ThemeProvider>
