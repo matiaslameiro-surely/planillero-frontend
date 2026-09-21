@@ -1,8 +1,9 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import type { FormFieldProps } from '../types';
+import type { FormFieldProps, JsonSchema } from '../types';
 
 export function FieldMultiSelect({ name, schema, value, onChange, onBlur, error, touched, readonly, label, description, required }: FormFieldProps) {
-  const enumValues = (schema.items?.enum as string[]) ?? [];
+  const itemsSchema = schema.items as JsonSchema | undefined;
+  const enumValues = (itemsSchema?.enum as string[]) ?? [];
   const selected = (value as string[]) ?? [];
 
   const toggle = (item: string) => {
@@ -21,7 +22,7 @@ export function FieldMultiSelect({ name, schema, value, onChange, onBlur, error,
         {enumValues.map((v) => (
           <TouchableOpacity
             key={v}
-            onPress={toggle}
+            onPress={() => toggle(v)}
             disabled={readonly}
             style={[
               styles.chip,

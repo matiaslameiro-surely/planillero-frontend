@@ -1,7 +1,6 @@
 import Ajv, { ValidateFunction, ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
-import type { JSONSchema7 } from 'ajv';
-import type { ValidationError, ValidationResult } from './types';
+import type { JsonSchema, ValidationError, ValidationResult } from './types';
 
 /** Instancia singleton de AJV con formatos. */
 const ajv = new Ajv({
@@ -19,7 +18,7 @@ const validateCache = new Map<string, ValidateFunction>();
  * @param schema JSON Schema (Draft 2020-12)
  * @returns Función `validate(data) => boolean`
  */
-export function getValidator(schema: JSONSchema7): ValidateFunction {
+function getValidator(schema: JsonSchema): ValidateFunction {
   const key = JSON.stringify(schema);
   let validate = validateCache.get(key);
   if (!validate) {
@@ -34,7 +33,7 @@ export function getValidator(schema: JSONSchema7): ValidateFunction {
  * @param errors Array de `ErrorObject` de AJV
  * @returns Array de `ValidationError` con field (JSON Pointer) y mensaje legible
  */
-export function mapAjvErrors(errors: ErrorObject[] | null | undefined): ValidationError[] {
+function mapAjvErrors(errors: ErrorObject[] | null | undefined): ValidationError[] {
   if (!errors || errors.length === 0) return [];
   return errors.map((e) => ({
     field: e.instancePath || (e.schemaPath ? `#/${e.schemaPath.split('/').slice(1).join('/')}` : ''),
@@ -86,7 +85,7 @@ function ajvErrorMessage(e: ErrorObject): string {
  * @param data Datos a validar
  * @returns `ValidationResult` con `isValid`, `errors` (mapa field->mensaje) y `violations`
  */
-export function validateSchema(schema: JSONSchema7, data: unknown): ValidationResult {
+export function validateSchema(schema: JsonSchema, data: unknown): ValidationResult {
   const validate = getValidator(schema);
   const valid = validate(data);
   const violations = mapAjvErrors(validate.errors);
@@ -106,15 +105,16 @@ export function validateSchema(schema: JSONSchema7, data: unknown): ValidationRe
  * @param value Valor a validar
  * @returns Mensaje de error o `undefined` si válido
  */
-export function validateField(schema: JSONSchema7, fieldName: string, value: unknown): string | undefined {
+export function validateField(schema: JsonSchema, fieldName: string, value: unknown): string | undefined {
   // Creamos un schema mínimo solo con esa propiedad para validar rápido
-  const fieldSchema = schema.properties?.[fieldName] as JSONSchema7 | undefined;
+  const fieldSchema = schema.properties?.[fieldName] as JsonSchema | undefined;
   if (!fieldSchema) return undefined;
 
+  const required = schema.required?.includes(fieldName) ?? false;
   const validate = getValidator({
     type: 'object',
     properties: { [fieldName]: fieldSchema },
-    required: schema.required?.includes(fieldName) ? [fieldName] : [],
+    required: required ? [fieldName] : [],
     additionalProperties: false,
   });
 

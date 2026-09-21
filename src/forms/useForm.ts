@@ -1,43 +1,17 @@
 import { useState, useCallback, useEffect } from 'react';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { ValidationResult } from './types';
+import type { JsonSchema } from './types';
 import { validateSchema, validateField } from './validation';
 
 interface UseFormOptions {
   /** Schema JSON Schema completo. */
-  schema: import('ajv').JSONSchema7;
+  schema: JsonSchema;
   /** Valores iniciales. */
   initialValues?: Record<string, unknown>;
   /** Callback de envío. */
   onSubmit: (values: Record<string, unknown>) => Promise<void>;
 }
 
-interface UseFormReturn {
-  /** Valores actuales del formulario. */
-  values: Record<string, unknown>;
-  /** Errores de validación (field -> mensaje). */
-  errors: Record<string, string>;
-  /** Campos tocados. */
-  touched: Record<string, boolean>;
-  /** true si el formulario es válido. */
-  isValid: boolean;
-  /** true si hay envío en curso. */
-  isSubmitting: boolean;
-  /** Maneja cambio de valor. */
-  handleChange: (name: string, value: unknown) => void;
-  /** Maneja blur (validación inline). */
-  handleBlur: (name: string) => void;
-  /** Maneja envío del formulario. */
-  handleSubmit: () => Promise<void>;
-  /** Resetea el formulario a valores iniciales. */
-  reset: () => void;
-  /** Establece un valor programáticamente. */
-  setValue: (name: string, value: unknown) => void;
-  /** Establece múltiples valores. */
-  setValues: (values: Record<string, unknown>) => void;
-}
-
-export function useForm({ schema, initialValues = {}, onSubmit }: UseFormOptions): UseFormReturn {
+export function useForm({ schema, initialValues = {}, onSubmit }: UseFormOptions) {
   const [values, setValuesState] = useState<Record<string, unknown>>(() => {
     const v: Record<string, unknown> = {};
     for (const key of Object.keys(initialValues)) {
@@ -66,7 +40,10 @@ export function useForm({ schema, initialValues = {}, onSubmit }: UseFormOptions
   const handleBlur = (name: string) => {
     const fieldSchema = schema.properties?.[name];
     if (!fieldSchema) return;
-    const fieldError = validateField({ ...schema, properties: { [name]: schema.properties?.[name] } } as any, name, values[name]);
+    const fieldError = validateField({ 
+      ...schema, 
+      properties: { [name]: fieldSchema as { type?: string; title?: string; description?: string; enum?: readonly unknown[] } } 
+    } as import('./types').JsonSchema, name, values[name]);
     setErrors((prev) => ({ ...prev, [name]: fieldError ?? '' }));
   };
 

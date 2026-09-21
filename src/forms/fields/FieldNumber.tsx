@@ -3,10 +3,6 @@ import type { FormFieldProps } from '../types';
 
 export function FieldNumber({ name, schema, value, onChange, onBlur, error, touched, readonly, label, description, required }: FormFieldProps) {
   const isInteger = schema.type === 'integer';
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _minimum = schema.minimum ?? schema.exclusiveMinimum;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _maximum = schema.maximum ?? schema.exclusiveMaximum;
 
   const sanitize = (text: string) => {
     if (isInteger) {
@@ -17,18 +13,24 @@ export function FieldNumber({ name, schema, value, onChange, onBlur, error, touc
 
   const handleChangeText = (text: string) => {
     const clean = sanitize(text);
+
     // Solo enviar si es número válido o vacío
-    if (clean === '' || clean === '-' || (isInteger ? /^-?\d+$/.test(clean) : /^-?\d*\.?\d*$/.test(clean))) {
-      onChange(name, clean === '' || clean === '-' ? undefined : isInteger ? parseInt(clean, 10) : parseFloat(clean));
+    if (clean === '' || clean === '-' ||
+      (isInteger ? /^-?\d+$/.test(clean) : /^-?\d*\.?\d*$/.test(clean))) {
+      const parsed = clean === '' || clean === '-' ? undefined :
+        isInteger ? parseInt(clean, 10) : parseFloat(clean);
+      onChange(name, parsed);
     }
   };
+
+  const displayValue = value === undefined || value === null ? '' : String(value);
 
   return (
     <View style={styles.container}>
       <Text style={[styles.label, required && styles.required]}>{label}{required ? ' *' : ''}</Text>
       <TextInput
         style={styles.input}
-        value={value ?? ''}
+        value={displayValue}
         onChangeText={handleChangeText}
         onBlur={() => onBlur(name)}
         editable={!readonly}
@@ -48,8 +50,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#cbd5e0',
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    padding: 10,
     fontSize: 16,
     backgroundColor: '#fff',
   },

@@ -1,13 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Button, ActivityIndicator } from 'react-native';
-import { JSONSchema7 } from 'ajv';
-import type { FormFieldProps, FormMode } from '../types';
+import type { JsonSchema, FormFieldProps, FormMode } from './types';
 import { renderField } from './fields';
 import { validateSchema, validateField } from './validation';
 
 interface DynamicFormProps {
   /** JSON Schema completo del formulario. */
-  schema: JSONSchema7;
+  schema: JsonSchema;
   /** Valores actuales del formulario. */
   initialValues?: Record<string, unknown>;
   /** Modo: 'edit' (default) o 'readonly'. */
@@ -58,9 +57,9 @@ export function DynamicForm({
   const handleBlur = (name: string) => {
     setTouched((prev) => ({ ...prev, [name]: true }));
     // Validar campo individual al blur
-    const fieldSchema = properties[name] as JSONSchema7 | undefined;
+    const fieldSchema = properties[name] as JsonSchema | undefined;
     if (fieldSchema) {
-      const fieldError = validateField({ ...schema, properties: { [name]: fieldSchema } } as JSONSchema7, name, values[name]);
+      const fieldError = validateField({ ...schema, properties: { [name]: fieldSchema } } as JsonSchema, name, values[name]);
       setErrors((prev) => ({ ...prev, [name]: fieldError ?? '' }));
     }
   };
@@ -87,7 +86,7 @@ export function DynamicForm({
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
       {fieldNames.map((name) => {
-        const fieldSchema = properties[name] as JSONSchema7;
+        const fieldSchema = properties[name] as JsonSchema;
         const fieldProps: FormFieldProps = {
           name,
           schema: fieldSchema,

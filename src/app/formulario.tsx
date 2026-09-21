@@ -5,12 +5,13 @@ import { DynamicForm } from '@/forms/DynamicForm';
 import { useForm } from '@/forms/useForm';
 import { fetchTemplate } from '@/forms/api';
 import { submitForm } from '@/api/visits';
+import type { JsonSchema } from '@/forms/types';
 
 
 export default function FormularioScreen() {
   const { visitId } = useLocalSearchParams<{ visitId?: string }>();
 
-  const [schema, setSchema] = React.useState<import('ajv').JSONSchema7 | null>(null);
+  const [schema, setSchema] = React.useState<JsonSchema | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [templateKey, setTemplateKey] = React.useState<string | null>(null);
@@ -29,8 +30,8 @@ export default function FormularioScreen() {
 
         if (tplKey) {
           const tpl = await fetchTemplate(tplKey, tplVersion ? parseInt(tplVersion, 10) : undefined);
-          setSchema(tpl.schemaJson);
-          setTemplateKey(tpl.templateKey);
+          setSchema(tpl.schema);
+          setTemplateKey(tpl.key);
           setTemplateVersion(tpl.version);
         } else {
           // TODO: mostrar catálogo para elegir

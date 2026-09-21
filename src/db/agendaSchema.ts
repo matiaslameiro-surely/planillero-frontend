@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 /** Versión actual del esquema local. Sube cuando se agrega un paso de migración. */
-export const AGENDA_SCHEMA_VERSION = 3;
+export const AGENDA_SCHEMA_VERSION = 4;
 
 /**
  * Crea o migra las tablas locales de la agenda.
@@ -104,6 +104,18 @@ export async function ensureAgendaSchema(db: SQLiteDatabase): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON sync_queue (status, created_at);
 
       PRAGMA user_version = 3;
+    `);
+  }
+
+  if (version < 4) {
+    // Columnas de formulario para el renderizador dinámico (PLAN-13) — dispositivos que ya
+    // migraron a v2 (auditoría) o v3 (cola sync) no recibieron estas columnas.
+    await db.execAsync(`
+      ALTER TABLE agenda_visits ADD COLUMN form_template_id TEXT;
+      ALTER TABLE agenda_visits ADD COLUMN form_template_version INTEGER;
+      ALTER TABLE agenda_visits ADD COLUMN form_submitted_at TEXT;
+
+      PRAGMA user_version = 4;
     `);
   }
 }

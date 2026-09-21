@@ -1,4 +1,32 @@
-import { JSONSchema7 } from 'ajv';
+/** JSON Schema (Draft 2020-12): solo las keywords simples que usa el contrato. */
+export type JsonSchema = {
+  type?: string | string[];
+  title?: string;
+  description?: string;
+  enum?: readonly unknown[];
+  const?: unknown;
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number | boolean;
+  exclusiveMaximum?: number | boolean;
+  multipleOf?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  format?: string;
+  items?: JsonSchema | JsonSchema[];
+  minItems?: number;
+  maxItems?: number;
+  uniqueItems?: boolean;
+  properties?: Record<string, JsonSchema>;
+  additionalProperties?: boolean | JsonSchema;
+  required?: string[];
+  dependencies?: Record<string, JsonSchema | string[]>;
+  allOf?: JsonSchema[];
+  anyOf?: JsonSchema[];
+  oneOf?: JsonSchema[];
+  not?: JsonSchema;
+};
 
 /** Modo de renderizado del formulario. */
 export type FormMode = 'edit' | 'readonly';
@@ -8,7 +36,7 @@ export interface FormFieldProps {
   /** Nombre del campo (clave en el objeto de respuestas). */
   name: string;
   /** Esquema JSON Schema de esta propiedad. */
-  schema: JSONSchema7;
+  schema: JsonSchema;
   /** Valor actual del campo. */
   value: unknown;
   /** Función para notificar cambio de valor. */
@@ -21,11 +49,11 @@ export interface FormFieldProps {
   touched?: boolean;
   /** Si el formulario es de solo lectura. */
   readonly?: boolean;
-  /** Etiqueta legible (title del schema o name). */
+  /** Etiqueta legible. */
   label?: string;
-  /** Texto de ayuda/placeholder (description del schema). */
+  /** Texto de ayuda. */
   description?: string;
-  /** Si el campo es requerido (para marcar con *). */
+  /** Si el campo es requerido. */
   required?: boolean;
 }
 
@@ -39,7 +67,7 @@ export interface ValidationError {
   rejectedValue?: unknown;
 }
 
-/** Resultado de validación completa del formulario. */
+/** Resultado de validación completa. */
 export interface ValidationResult {
   /** true si no hay errores. */
   isValid: boolean;
@@ -49,30 +77,29 @@ export interface ValidationResult {
   violations: ValidationError[];
 }
 
-/** Plantilla de formulario (respuesta de GET /api/v1/plantillas). */
+/** Plantilla de formulario (lista). */
 export interface FormTemplateListItem {
   id: string;
-  templateKey: string;
+  key: string;
   version: number;
   name: string;
   description: string;
-  active: boolean;
   createdAt: string;
 }
 
-/** Plantilla con schema completo (respuesta de GET /api/v1/plantillas/{clave}). */
+/** Plantilla con schema completo. */
 export interface FormTemplateDetail extends FormTemplateListItem {
-  schemaJson: JSONSchema7;
+  schema: JsonSchema;
 }
 
-/** Request para POST /api/v1/visitas/{id}/formulario. */
+/** Request para enviar formulario. */
 export interface FormSubmissionRequest {
   templateKey: string;
   templateVersion: number;
   responses: Record<string, unknown>;
 }
 
-/** Response de POST /api/v1/visitas/{id}/formulario. */
+/** Response de envío. */
 export interface FormSubmissionResponse {
   visitId: string;
   templateKey: string;
@@ -92,6 +119,9 @@ export interface VisitWithForm {
   urgency: string;
   createdAt: string;
   formTemplateId?: string;
-  responsesJson?: Record<string, unknown>;
-  formSubmittedAt?: string;
+  templateKey?: string;
+  templateVersion?: number;
+  templateName?: string;
+  responses?: Record<string, unknown>;
+  submittedAt?: string;
 }

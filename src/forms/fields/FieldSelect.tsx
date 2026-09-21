@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, Picker } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import type { FormFieldProps } from '../types';
 
 export function FieldSelect({ name, schema, value, onChange, onBlur, error, touched, readonly, label, description, required }: FormFieldProps) {
