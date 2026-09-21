@@ -5,6 +5,9 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { getHealth, type HealthResult } from '@/api/client';
 import { useSession } from '@/auth/SessionContext';
 import { API_URL } from '@/constants/env';
+import { confirmSignOut } from '@/sync/signOutGuard';
+import { useSyncQueue } from '@/sync/useSyncQueue';
+import { useDeviceStatus } from '@/status/useDeviceStatus';
 
 /** Lo que se está mostrando: la consulta en curso o su resultado. */
 type HealthState = { kind: 'checking' } | { kind: 'settled'; result: HealthResult };
@@ -40,7 +43,22 @@ function Loading() {
 function SignedInHome() {
   const { user, signOut } = useSession();
   const router = useRouter();
+  const device = useDeviceStatus();
+  const queue = useSyncQueue(device.online);
   const [health, setHealth] = useState<HealthState>({ kind: 'checking' });
+
+  /**
+   * Cerrar sesión con la cola sin vaciar es perder trabajo: la base local es del operador y se
+   * cierra con la sesión. Por eso se pregunta antes, y sólo cuando hay algo que perder.
+   */
+  const onSignOut = useCallback(async () => {
+    // Se cuenta en el momento, no se usa el número del último render: entre que se pintó la pantalla
+    // y el toque pudieron encolarse o enviarse actas.
+    const pendientes = await queue.reload();
+    if (await confirmSignOut(pendientes)) {
+      await signOut();
+    }
+  }, [queue, signOut]);
 
   const check = useCallback(async () => {
     setHealth({ kind: 'checking' });
@@ -88,7 +106,7 @@ function SignedInHome() {
 
       <Pressable
         style={({ pressed }) => [styles.button, styles.buttonGhost, pressed && styles.buttonPressed]}
-        onPress={() => void signOut()}
+        onPress={() => void onSignOut()}
         accessibilityRole="button">
         <Text style={styles.buttonGhostText}>Cerrar sesión</Text>
       </Pressable>
