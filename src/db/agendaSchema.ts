@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 /** Versión actual del esquema local. Sube cuando se agrega un paso de migración. */
-export const AGENDA_SCHEMA_VERSION = 1;
+export const AGENDA_SCHEMA_VERSION = 2;
 
 /**
  * Crea o migra las tablas locales de la agenda.
@@ -42,6 +42,23 @@ export async function ensureAgendaSchema(db: SQLiteDatabase): Promise<void> {
       );
 
       PRAGMA user_version = 1;
+    `);
+  }
+
+  if (version < 2) {
+    await db.execAsync(`
+      -- Trazas locales de eventos operativos (PLAN-11 / TASK-12), para viajar en el batch de
+      -- sincronización cuando exista el motor de TASK-09. Hasta entonces, sólo se acumulan acá.
+      CREATE TABLE IF NOT EXISTS visit_audit_traces (
+        id          TEXT NOT NULL PRIMARY KEY,
+        visit_id    TEXT NOT NULL,
+        event_type  TEXT NOT NULL,
+        occurred_at TEXT NOT NULL,
+        metadata    TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_visit_audit_traces_visit ON visit_audit_traces (visit_id);
+
+      PRAGMA user_version = 2;
     `);
   }
 }
