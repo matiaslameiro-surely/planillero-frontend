@@ -85,6 +85,25 @@ El backend corre local (`cd ../backend && ./mvnw spring-boot:run`).
 4. Cerrar sesión → vuelve al login.
 5. Ingresar `supervisor.demo / Supervisor123!` tras haber habilitado 2FA → pide código TOTP → tras código correcto, entra a home.
 
+## Generar el APK con Docker
+
+Para probar en una tablet Android sin instalar Android Studio ni el SDK, el APK se compila dentro de
+un contenedor (`docker/Dockerfile.apk`: Node 24 + JDK 17 + Android SDK, `expo prebuild` + Gradle):
+
+```bash
+sh scripts/build-apk.sh http://192.168.0.10:8080     # en Windows, con Git Bash
+# → dist-apk/planillero.apk
+```
+
+- El argumento es la **URL del backend**, que queda dentro del APK como `EXPO_PUBLIC_API_URL`. En una
+  tablet `localhost` es la propia tablet: poné la IP de la computadora que corre el backend (o su
+  dominio). Nunca pongas secretos ahí: cualquiera con el APK puede leerla.
+- La **primera vez tarda bastante y baja varios GB** (Android SDK y dependencias de Gradle); las
+  siguientes reusan la caché de Docker.
+- El APK sale firmado con la clave de **debug** que genera `expo prebuild`: sirve para instalar en
+  equipos de prueba, **no para publicar**. Un release real necesita un keystore propio.
+- No forma parte del `docker compose` de servicios del repo `backend`: es una herramienta de build.
+
 ## Estructura
 
 ```

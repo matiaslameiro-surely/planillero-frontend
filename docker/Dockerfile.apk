@@ -1,0 +1,63 @@
+# syntax=docker/dockerfile:1
+
+# Empaqueta la app móvil como APK Android de PRUEBA dentro de un contenedor.
+# No forma parte del `docker compose` de servicios: es una herramienta de build, pesada (Android SDK).
+#
+# Uso recomendado (arma el contexto y deja el APK en ./dist-apk):
+#   sh scripts/build-apk.sh http://192.168.0.10:8080
+#
+# A mano, desde la raíz del repo:
+#   docker build -f docker/Dockerfile.apk --build-arg EXPO_PUBLIC_API_URL=http://192.168.0.10:8080 \
+#     --target apk --output type=local,dest=dist-apk .
+#
+# El APK sale firmado con la clave de debug que genera `expo prebuild`: sirve para instalar en
+# tablets de prueba, NO para publicar. Un release real necesita un keystore propio (fuera de alcance).
+
+# ---- Etapa de build ----
+FROM node:24-bookworm-slim AS build
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+    ANDROID_HOME=/opt/android-sdk \
+    ANDROID_SDK_ROOT=/opt/android-sdk \
+    GRADLE_OPTS="-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx3g"
+ENV PATH="${PATH}:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openjdk-17-jdk-headless unzip curl ca-certificates git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Herramientas de línea de comandos del Android SDK. Aceptar las licencias permite que Gradle
+# descargue por su cuenta las plataformas, build-tools y NDK que pida el proyecto.
+ARG ANDROID_CMDLINE_TOOLS=11076708
+RUN mkdir -p "${ANDROID_HOME}/cmdline-tools" \
+    && curl -fsSL "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_CMDLINE_TOOLS}_latest.zip" -o /tmp/cmdline-tools.zip \
+    && unzip -q /tmp/cmdline-tools.zip -d "${ANDROID_HOME}/cmdline-tools" \
+    && mv "${ANDROID_HOME}/cmdline-tools/cmdline-tools" "${ANDROID_HOME}/cmdline-tools/latest" \
+    && rm /tmp/cmdline-tools.zip \
+    && yes | sdkmanager --licenses >/dev/null \
+    && sdkmanager "platform-tools"
+
+WORKDIR /app
+
+# Dependencias primero: esta capa se reusa mientras no cambien package.json / package-lock.json.
+COPY package.json package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci
+
+COPY . .
+
+# La URL del backend queda dentro del bundle (cualquiera con el APK puede leerla): nunca pases
+# secretos por acá. En una tablet, `localhost` es la propia tablet: usá la IP o el dominio del backend.
+ARG EXPO_PUBLIC_API_URL
+RUN test -n "${EXPO_PUBLIC_API_URL}" || (echo "Falta --build-arg EXPO_PUBLIC_API_URL" >&2; exit 1)
+ENV EXPO_PUBLIC_API_URL=${EXPO_PUBLIC_API_URL}
+
+# Genera el proyecto nativo (/android) a partir de app.json y compila el APK.
+RUN npx expo prebuild --platform android --no-install
+RUN --mount=type=cache,target=/root/.gradle \
+    cd android && sh ./gradlew assembleRelease --no-daemon \
+    && mkdir -p /out && cp app/build/outputs/apk/release/*.apk /out/planillero.apk
+
+# ---- Etapa de salida: sólo el APK, para extraerlo con `--output` ----
+FROM scratch AS apk
+COPY --from=build /out/planillero.apk /planillero.apk
