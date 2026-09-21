@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { router } from 'expo-router';
 
 import { getMyRouteSheet } from '@/api/visits';
 import { countPending, lastSync, listDay, replaceDay, type AgendaVisit } from '@/agenda/agendaRepository';
@@ -22,6 +23,8 @@ export interface Agenda {
   reload: () => Promise<void>;
   /** Baja la agenda del backend y la vuelca a SQLite. Sin conexión no hace nada. */
   refresh: () => Promise<void>;
+  /** Abre la pantalla de formulario para una visita. */
+  openFormulario: (visitId: string, templateKey?: string, templateVersion?: number) => void;
 }
 
 /**
@@ -72,6 +75,16 @@ export function useAgenda(date: string, online: boolean): Agenda {
     await reload();
   }, [db, date, online, reload]);
 
+  const openFormulario = useCallback(
+    (visitId: string, templateKey?: string, templateVersion?: number) => {
+      const params = new URLSearchParams({ visitId });
+      if (templateKey) params.set('templateKey', templateKey);
+      if (templateVersion) params.set('templateVersion', String(templateVersion));
+      router.push(`/formulario?${params.toString()}`);
+    },
+    [],
+  );
+
   useEffect(() => {
     void refresh().then(() => undefined, () => undefined);
   }, [refresh]);
@@ -89,5 +102,6 @@ export function useAgenda(date: string, online: boolean): Agenda {
     databaseError: database.status === 'error' ? database.message : null,
     reload,
     refresh,
+    openFormulario,
   };
 }

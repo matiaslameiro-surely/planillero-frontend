@@ -28,18 +28,29 @@ interface VisitCardProps {
   /** Se está iniciando esta visita. */
   starting: boolean;
   onStart: (visit: AgendaVisit) => void;
+  /** Callback opcional para abrir formulario. */
+  onOpenForm?: (visit: AgendaVisit) => void;
 }
 
 /**
  * Tarjeta de una visita de la hoja de ruta: código, dirección, urgencia y estado.
  *
- * El botón "Iniciar visita" sólo aparece en visitas asignadas. Sin conexión queda deshabilitado y lo
- * explica con un texto: el inicio se registra en el servidor y no se encola (eso es la sincronización
- * diferida, otra tarea).
+ * - Botón "Iniciar visita" en visitas ASSIGNED (requiere online).
+ * - Botón "Completar formulario" en visitas ASSIGNED/IN_PROGRESS con form_template_id.
  */
-export function VisitCard({ visit, online, starting, onStart }: VisitCardProps) {
+export function VisitCard({
+  visit,
+  online,
+  starting,
+  onStart,
+  onOpenForm,
+}: VisitCardProps) {
   const canStart = visit.status === 'ASSIGNED';
-  const disabled = !online || starting;
+  const disabledStart = !online || starting;
+
+  // Mostrar botón formulario si la visita tiene plantilla asignada o está en progreso
+  const hasFormTemplate = !!visit.formTemplateId;
+  const canOpenForm = (visit.status === 'ASSIGNED' || visit.status === 'IN_PROGRESS') && hasFormTemplate;
 
   return (
     <View style={styles.card}>
@@ -64,13 +75,13 @@ export function VisitCard({ visit, online, starting, onStart }: VisitCardProps) 
           <Pressable
             style={({ pressed }) => [
               styles.button,
-              disabled && styles.buttonDisabled,
-              pressed && !disabled && styles.buttonPressed,
+              disabledStart && styles.buttonDisabled,
+              pressed && !disabledStart && styles.buttonPressed,
             ]}
             onPress={() => onStart(visit)}
-            disabled={disabled}
+            disabled={disabledStart}
             accessibilityRole="button"
-            accessibilityState={{ disabled }}
+            accessibilityState={{ disabled: disabledStart }}
             accessibilityLabel={`Iniciar visita ${visit.code}`}>
             {starting ? (
               <ActivityIndicator color="#fff" />
@@ -82,6 +93,19 @@ export function VisitCard({ visit, online, starting, onStart }: VisitCardProps) 
             <Text style={styles.hint}>Iniciar la visita requiere conexión con el servidor.</Text>
           ) : null}
         </>
+      ) : null}
+
+      {canOpenForm && onOpenForm ? (
+        <Pressable
+          style={({ pressed }) => [
+            styles.buttonForm,
+            pressed && styles.buttonFormPressed,
+          ]}
+          onPress={() => onOpenForm(visit)}
+          accessibilityRole="button"
+          accessibilityLabel={`Completar formulario de ${visit.code}`}>
+          <Text style={styles.buttonFormText}>Completar formulario</Text>
+        </Pressable>
       ) : null}
     </View>
   );
@@ -114,4 +138,16 @@ const styles = StyleSheet.create({
   buttonPressed: { opacity: 0.85 },
   buttonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
   hint: { fontSize: 13, opacity: 0.8 },
+  buttonForm: {
+    minHeight: MIN_TOUCH_TARGET,
+    minWidth: MIN_TOUCH_TARGET,
+    marginTop: 6,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#38a169',
+  },
+  buttonFormPressed: { opacity: 0.85 },
+  buttonFormText: { color: '#fff', fontSize: 17, fontWeight: '700' },
 });

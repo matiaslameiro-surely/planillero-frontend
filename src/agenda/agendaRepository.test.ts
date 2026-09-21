@@ -55,6 +55,8 @@ const sheet: RouteSheet = {
         longitude: -58.4,
         status: 'ASSIGNED',
         urgency: 'HIGH',
+        formTemplateId: 'template-1',
+        formTemplateVersion: 2,
       },
     },
     {
@@ -67,6 +69,8 @@ const sheet: RouteSheet = {
         longitude: -58.5,
         status: 'ASSIGNED',
         urgency: 'LOW',
+        formTemplateId: 'template-1',
+        formTemplateVersion: 2,
       },
     },
   ],
@@ -86,6 +90,9 @@ const baseRow: AgendaRow = {
   start_longitude: null,
   start_accuracy_meters: null,
   started_at_server: null,
+  form_template_id: null,
+  form_template_version: null,
+  form_submitted_at: null,
 };
 
 describe('toAgendaVisit', () => {
@@ -101,6 +108,9 @@ describe('toAgendaVisit', () => {
       status: 'ASSIGNED',
       urgency: 'HIGH',
       start: null,
+      formTemplateId: undefined,
+      formTemplateVersion: undefined,
+      formSubmittedAt: undefined,
     });
   });
 

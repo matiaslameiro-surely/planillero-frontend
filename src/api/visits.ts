@@ -19,6 +19,12 @@ export interface Visit {
   longitude: number;
   status: VisitStatus;
   urgency: VisitUrgency;
+  /** ID de la plantilla de formulario asociada (si hay). */
+  formTemplateId?: string;
+  /** Versión de la plantilla de formulario. */
+  formTemplateVersion?: number;
+  /** Timestamp de envío del formulario (si ya se envió). */
+  formSubmittedAt?: string;
 }
 
 /** Hoja de ruta de un día, ya ordenada por posición. */
@@ -67,5 +73,30 @@ export function startVisit(visitId: string, body: StartVisitRequest): Promise<St
   return requestWithAuth<StartVisitResponse>(`/api/v1/visits/${encodeURIComponent(visitId)}/start`, {
     method: 'POST',
     body,
+  });
+}
+
+/** Envía las respuestas de un formulario para una visita. */
+export interface FormSubmissionRequest {
+  templateKey: string;
+  templateVersion: number;
+  responses: Record<string, unknown>;
+}
+
+export interface FormSubmissionResponse {
+  visitId: string;
+  templateKey: string;
+  templateVersion: number;
+  submittedAt: string;
+}
+
+/** POST /api/v1/visitas/{id}/formulario - Enviar respuestas de formulario. */
+export function submitForm(
+  visitId: string,
+  payload: FormSubmissionRequest
+): Promise<FormSubmissionResponse> {
+  return requestWithAuth<FormSubmissionResponse>(`/api/v1/visitas/${encodeURIComponent(visitId)}/formulario`, {
+    method: 'POST',
+    body: payload,
   });
 }
