@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 /** Versión actual del esquema local. Sube cuando se agrega un paso de migración. */
-export const AGENDA_SCHEMA_VERSION = 2;
+export const AGENDA_SCHEMA_VERSION = 3;
 
 /**
  * Crea o migra las tablas locales de la agenda.
@@ -9,6 +9,9 @@ export const AGENDA_SCHEMA_VERSION = 2;
  * La versión vive en `PRAGMA user_version`, que SQLite guarda dentro del propio archivo cifrado, así
  * que un archivo nuevo arranca en 0 y uno ya migrado no repite pasos. Cada paso de migración se
  * agrega como un bloque `if (version < N)` que termina subiendo la versión.
+ *
+ * Un paso ya publicado **no se edita ni se renumera**: hay dispositivos con esa versión aplicada, y
+ * lo que no vuelve a ejecutarse en ellos es lo que ya corrió. Todo lo nuevo entra como un paso más.
  */
 export async function ensureAgendaSchema(db: SQLiteDatabase): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
@@ -46,6 +49,23 @@ export async function ensureAgendaSchema(db: SQLiteDatabase): Promise<void> {
   }
 
   if (version < 2) {
+    await db.execAsync(`
+      -- Trazas locales de eventos operativos (PLAN-11 / TASK-12), para viajar en el batch de
+      -- sincronización cuando exista el motor de TASK-09. Hasta entonces, sólo se acumulan acá.
+      CREATE TABLE IF NOT EXISTS visit_audit_traces (
+        id          TEXT NOT NULL PRIMARY KEY,
+        visit_id    TEXT NOT NULL,
+        event_type  TEXT NOT NULL,
+        occurred_at TEXT NOT NULL,
+        metadata    TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_visit_audit_traces_visit ON visit_audit_traces (visit_id);
+
+      PRAGMA user_version = 2;
+    `);
+  }
+
+  if (version < 3) {
     // Cola de sincronización: lo que el operador cargó sin conexión y todavía no llegó al servidor.
     //
     // Vive en este mismo archivo cifrado y no en una base aparte: son actas de un expediente y
@@ -54,6 +74,9 @@ export async function ensureAgendaSchema(db: SQLiteDatabase): Promise<void> {
     //
     // Sólo quedan acá las operaciones que faltan resolver: al confirmarse, se borran. Así "cuántas
     // hay pendientes" es contar filas y no puede desincronizarse de la realidad.
+    //
+    // Es el paso 3 y no el 2 porque PLAN-11 publicó el 2 antes: en un dispositivo que ya migró, un
+    // paso 2 reescrito no se volvería a ejecutar y esta tabla no existiría nunca.
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS sync_queue (
         -- Identificador de la operación, generado en el dispositivo. Viaja al backend y es lo que
@@ -75,7 +98,7 @@ export async function ensureAgendaSchema(db: SQLiteDatabase): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON sync_queue (status, created_at);
 
-      PRAGMA user_version = 2;
+      PRAGMA user_version = 3;
     `);
   }
 }
