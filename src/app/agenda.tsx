@@ -7,9 +7,11 @@ import { useAgenda } from '@/agenda/useAgenda';
 import type { AgendaVisit } from '@/agenda/agendaRepository';
 import { useSession } from '@/auth/SessionContext';
 import { DeviceStatusBar } from '@/components/DeviceStatusBar';
+import { SyncQueueBanner } from '@/components/SyncQueueBanner';
 import { VisitCard } from '@/components/VisitCard';
 import { useDatabase } from '@/db/DatabaseProvider';
 import { useDeviceStatus } from '@/status/useDeviceStatus';
+import { useSyncQueue } from '@/sync/useSyncQueue';
 import { startVisit } from '@/visit/startVisit';
 
 /**
@@ -39,6 +41,8 @@ function Agenda() {
   const database = useDatabase();
   const date = useMemo(() => localDateString(), []);
   const agenda = useAgenda(date, device.online);
+  // La cola se despacha sola al volver la conexión: acá sólo se muestra en qué anda.
+  const queue = useSyncQueue(device.online);
 
   const [startingId, setStartingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -73,6 +77,13 @@ function Agenda() {
         batteryLevel={device.batteryLevel}
         gps={device.gps}
         pendingVisits={agenda.pending}
+      />
+
+      <SyncQueueBanner
+        pending={queue.pending}
+        failed={queue.failed}
+        justCleared={queue.justCleared}
+        dispatching={queue.dispatching}
       />
 
       <View style={styles.header}>
