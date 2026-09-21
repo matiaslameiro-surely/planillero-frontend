@@ -121,6 +121,8 @@ export async function nextBatch(db: SQLiteDatabase): Promise<QueuedOperation[]> 
  * El orden importa: si la clave se guardara después de enviar, un corte de red justo en el medio
  * dejaría las operaciones sin clave y el reintento saldría como un envío nuevo. Toda la protección
  * de lote depende de que esto pase primero.
+ *
+ * **No cuenta un intento.** Salir no es lo mismo que ser rechazado: ver `bumpAttempts`.
  */
 export async function assignBatchKey(
   db: SQLiteDatabase,
@@ -132,10 +134,32 @@ export async function assignBatchKey(
   }
   const placeholders = clientOperationIds.map(() => '?').join(', ');
   await db.runAsync(
-    `UPDATE sync_queue
-        SET batch_key = ?, attempts = attempts + 1, updated_at = ?
+    `UPDATE sync_queue SET batch_key = ?, updated_at = ?
       WHERE client_operation_id IN (${placeholders})`,
     [batchKey, new Date().toISOString(), ...clientOperationIds],
+  );
+}
+
+/**
+ * Cuenta un intento fallido **con respuesta del servidor**.
+ *
+ * Se separa de `assignBatchKey` porque cada envío no es un intento: quedarse sin señal no es culpa
+ * del dato. Si los cortes de red contaran, una jornada con cobertura intermitente archivaría como
+ * fallidas actas que nadie rechazó nunca, y el operador perdería su trabajo por estar en un
+ * subsuelo.
+ */
+export async function bumpAttempts(
+  db: SQLiteDatabase,
+  clientOperationIds: string[],
+): Promise<void> {
+  if (clientOperationIds.length === 0) {
+    return;
+  }
+  const placeholders = clientOperationIds.map(() => '?').join(', ');
+  await db.runAsync(
+    `UPDATE sync_queue SET attempts = attempts + 1, updated_at = ?
+      WHERE client_operation_id IN (${placeholders})`,
+    [new Date().toISOString(), ...clientOperationIds],
   );
 }
 

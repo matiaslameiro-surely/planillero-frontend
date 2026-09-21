@@ -5,6 +5,7 @@ import { ApiError } from '@/api/client';
 import { postSyncBatch, type SyncOperation } from '@/api/sync';
 import {
   assignBatchKey,
+  bumpAttempts,
   clearBatchKey,
   countPendingOperations,
   markFailed,
@@ -127,7 +128,9 @@ async function onFailure(
 
   if (error.status === 409 && error.code === 'idempotency_key_in_progress') {
     // El envío anterior todavía se está procesando del otro lado. Se reintenta más tarde con la
-    // misma clave.
+    // misma clave. Cuenta como intento: si el servidor contesta siempre lo mismo, el lote no puede
+    // quedar dando vueltas para siempre.
+    await bumpAttempts(db, ids);
     return { settled: 0, rejected: 0, pending: await pendientes(), failure: 'busy' };
   }
 
@@ -152,6 +155,8 @@ async function onFailure(
     return { settled: 0, rejected: ids.length, pending: await pendientes(), failure: null };
   }
 
-  // 5xx: el servidor tuvo un problema propio. Se conserva la clave y se reintenta.
+  // 5xx: el servidor tuvo un problema propio. Se conserva la clave y se reintenta, pero cuenta como
+  // intento: hubo respuesta, y un servidor que falla siempre no debe reintentarse indefinidamente.
+  await bumpAttempts(db, ids);
   return { settled: 0, rejected: 0, pending: await pendientes(), failure: 'offline' };
 }

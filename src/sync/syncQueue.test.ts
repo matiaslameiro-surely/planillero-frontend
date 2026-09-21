@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import {
   assignBatchKey,
+  bumpAttempts,
   clearBatchKey,
   countPendingOperations,
   enqueueVisitForm,
@@ -125,14 +126,25 @@ describe('nextBatch', () => {
 });
 
 describe('assignBatchKey', () => {
-  it('guarda la clave y suma un intento', async () => {
+  it('guarda la clave sin contar un intento', async () => {
     const { asDatabase, calls } = fakeDb();
 
     await assignBatchKey(asDatabase, ['op-1', 'op-2'], 'lote-1');
 
-    expect(calls[0].sql).toContain('attempts = attempts + 1');
     expect(calls[0].params[0]).toBe('lote-1');
     expect(calls[0].params.slice(2)).toEqual(['op-1', 'op-2']);
+    // Salir no es ser rechazado: si cada envío contara, cinco cortes de red archivarían actas que
+    // el servidor nunca vio.
+    expect(calls[0].sql).not.toContain('attempts');
+  });
+
+  it('contar un intento es una operación aparte del envío', async () => {
+    const { asDatabase, calls } = fakeDb();
+
+    await bumpAttempts(asDatabase, ['op-1']);
+
+    expect(calls[0].sql).toContain('attempts = attempts + 1');
+    expect(calls[0].sql).not.toContain('batch_key');
   });
 
   it('sin operaciones no toca la base', async () => {

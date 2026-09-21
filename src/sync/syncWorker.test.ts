@@ -17,6 +17,7 @@ jest.mock('@/sync/syncQueue', () => ({
   ...jest.requireActual('@/sync/syncQueue'),
   nextBatch: jest.fn(),
   assignBatchKey: jest.fn(),
+  bumpAttempts: jest.fn(),
   clearBatchKey: jest.fn(),
   removeOperations: jest.fn(),
   markFailed: jest.fn(),
@@ -29,6 +30,7 @@ const assignBatchKey = queue.assignBatchKey as jest.MockedFunction<typeof queue.
 const clearBatchKey = queue.clearBatchKey as jest.MockedFunction<typeof queue.clearBatchKey>;
 const removeOperations = queue.removeOperations as jest.MockedFunction<typeof queue.removeOperations>;
 const markFailed = queue.markFailed as jest.MockedFunction<typeof queue.markFailed>;
+const bumpAttempts = queue.bumpAttempts as jest.MockedFunction<typeof queue.bumpAttempts>;
 const countPending = queue.countPendingOperations as jest.MockedFunction<
   typeof queue.countPendingOperations
 >;
@@ -199,6 +201,31 @@ describe('dispatchQueue', () => {
 
     expect(result.failure).toBe('offline');
     expect(markFailed).not.toHaveBeenCalled();
+  });
+
+  it('quedarse sin señal no consume intentos', async () => {
+    // Una jornada entera con cobertura intermitente no puede archivar actas que nadie rechazó: el
+    // tope existe para los rechazos del servidor, no para el transporte.
+    nextBatch.mockResolvedValue([operation({ batchKey: 'clave-original' })]);
+    post.mockRejectedValue(new TypeError('Network request failed'));
+
+    for (let intento = 0; intento < MAX_ATTEMPTS + 2; intento += 1) {
+      const result = await dispatchQueue(db);
+      expect(result.failure).toBe('offline');
+    }
+
+    expect(bumpAttempts).not.toHaveBeenCalled();
+    expect(markFailed).not.toHaveBeenCalled();
+    expect(assignBatchKey).toHaveBeenCalledWith(db, ['op-1'], 'clave-original');
+  });
+
+  it('un rechazo del servidor sí consume un intento', async () => {
+    nextBatch.mockResolvedValue([operation({ batchKey: 'clave-original' })]);
+    post.mockRejectedValue(new ApiError('Algo falló.', 500, 'server_error'));
+
+    await dispatchQueue(db);
+
+    expect(bumpAttempts).toHaveBeenCalledWith(db, ['op-1']);
   });
 
   it('un lote que agotó los intentos se archiva en vez de volver a salir', async () => {

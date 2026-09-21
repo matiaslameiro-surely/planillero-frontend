@@ -4,6 +4,18 @@ import { useDatabase } from '@/db/DatabaseProvider';
 import { countFailedOperations, countPendingOperations } from '@/sync/syncQueue';
 import { dispatchQueue } from '@/sync/syncWorker';
 
+/**
+ * Cuántos lotes seguidos se mandan en un mismo despacho.
+ *
+ * Es un tope de seguridad, no una cuota: corta un ciclo que no avanza (por ejemplo, si el servidor
+ * contestara siempre que quedan pendientes). Con 50 operaciones por lote, alcanza para vaciar una
+ * cola de mil.
+ */
+const MAX_BATCHES_PER_DISPATCH = 20;
+
+/** Cuánto queda visible la confirmación de «todo sincronizado» antes de irse sola. */
+const CLEARED_NOTICE_MS = 5000;
+
 export interface SyncQueue {
   /** Operaciones esperando salir. Es el número que se le muestra al operador. */
   pending: number;
@@ -73,7 +85,16 @@ export function useSyncQueue(online: boolean): SyncQueue {
     running.current = true;
     setDispatching(true);
     try {
-      await dispatchQueue(db);
+      // Se encadenan lotes mientras el envío avance. Con un solo lote por despacho, una cola más
+      // grande que el tamaño de lote se quedaría a medias hasta que la red se cortara y volviera
+      // otra vez, con el dispositivo conectado todo el tiempo.
+      for (let vuelta = 0; vuelta < MAX_BATCHES_PER_DISPATCH; vuelta += 1) {
+        const result = await dispatchQueue(db);
+        // Nada que enviar, algo que falló, o ya no queda nada: en los tres casos insistir no ayuda.
+        if (result.sent === 0 || result.failure !== null || result.pending === 0) {
+          break;
+        }
+      }
     } catch {
       // `dispatchQueue` ya distingue cada fallo y deja la cola consistente. Acá sólo se evita que un
       // error inesperado rompa la pantalla: las operaciones siguen guardadas.
@@ -87,6 +108,16 @@ export function useSyncQueue(online: boolean): SyncQueue {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  // La confirmación se muestra un rato y se va. Un cartel que se queda deja de confirmar algo y pasa
+  // a ser parte del decorado, que es como no haber confirmado nada.
+  useEffect(() => {
+    if (!justCleared) {
+      return;
+    }
+    const timer = setTimeout(() => setJustCleared(false), CLEARED_NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [justCleared]);
 
   // Al montar y cada vez que la conexión vuelve. Mientras `online` sea falso no se toca la red.
   useEffect(() => {
