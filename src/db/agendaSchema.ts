@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 /** Versión actual del esquema local. Sube cuando se agrega un paso de migración. */
-export const AGENDA_SCHEMA_VERSION = 2;
+export const AGENDA_SCHEMA_VERSION = 3;
 
 /**
  * Crea o migra las tablas locales de la agenda.
@@ -9,6 +9,9 @@ export const AGENDA_SCHEMA_VERSION = 2;
  * La versión vive en `PRAGMA user_version`, que SQLite guarda dentro del propio archivo cifrado, así
  * que un archivo nuevo arranca en 0 y uno ya migrado no repite pasos. Cada paso de migración se
  * agrega como un bloque `if (version < N)` que termina subiendo la versión.
+ *
+ * Un paso ya publicado **no se edita ni se renumera**: hay dispositivos con esa versión aplicada, y
+ * lo que no vuelve a ejecutarse en ellos es lo que ya corrió. Todo lo nuevo entra como un paso más.
  */
 export async function ensureAgendaSchema(db: SQLiteDatabase): Promise<void> {
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
@@ -59,6 +62,43 @@ export async function ensureAgendaSchema(db: SQLiteDatabase): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_visit_audit_traces_visit ON visit_audit_traces (visit_id);
 
       PRAGMA user_version = 2;
+    `);
+  }
+
+  if (version < 3) {
+    // Cola de sincronización: lo que el operador cargó sin conexión y todavía no llegó al servidor.
+    //
+    // Vive en este mismo archivo cifrado y no en una base aparte: son actas de un expediente y
+    // merecen el mismo resguardo que el resto. Una segunda base serían dos claves y dos ciclos de
+    // vida sin ganar nada.
+    //
+    // Sólo quedan acá las operaciones que faltan resolver: al confirmarse, se borran. Así "cuántas
+    // hay pendientes" es contar filas y no puede desincronizarse de la realidad.
+    //
+    // Es el paso 3 y no el 2 porque PLAN-11 publicó el 2 antes: en un dispositivo que ya migró, un
+    // paso 2 reescrito no se volvería a ejecutar y esta tabla no existiría nunca.
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS sync_queue (
+        -- Identificador de la operación, generado en el dispositivo. Viaja al backend y es lo que
+        -- hace que un reintento no duplique el acta.
+        client_operation_id TEXT    PRIMARY KEY NOT NULL,
+        type                TEXT    NOT NULL,
+        visit_id            TEXT    NOT NULL,
+        -- El cuerpo del formulario tal cual se va a enviar, ya serializado.
+        payload_json        TEXT    NOT NULL,
+        -- 'pending': falta enviarla. 'failed': el servidor la rechazó por el dato; no se reintenta sola.
+        status              TEXT    NOT NULL,
+        attempts            INTEGER NOT NULL DEFAULT 0,
+        -- Clave del lote en el que salió. Se asigna ANTES de enviar: si se corta la red, el
+        -- reintento usa la misma y el backend lo reconoce como el mismo envío.
+        batch_key           TEXT,
+        last_error          TEXT,
+        created_at          TEXT    NOT NULL,
+        updated_at          TEXT    NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON sync_queue (status, created_at);
+
+      PRAGMA user_version = 3;
     `);
   }
 }
