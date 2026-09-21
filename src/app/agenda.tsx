@@ -17,7 +17,7 @@ import { startVisit } from '@/visit/startVisit';
 /**
  * Pantalla "Hoja de Ruta": las visitas del día del operador.
  *
- * Lee **sólo de SQLite** (ver `useAgenda`), así que se ve igual con y sin conexión. La barra de estado
+ * Lee **solo de SQLite** (ver `useAgenda`), así que se ve igual con y sin conexión. La barra de estado
  * va fija arriba y no se mueve con la lista.
  */
 export default function AgendaScreen() {
@@ -70,6 +70,17 @@ function Agenda() {
     [agenda, database, startingId],
   );
 
+  const onOpenForm = useCallback(
+    (visit: AgendaVisit) => {
+      agenda.openFormulario(
+        visit.visitId,
+        visit.formTemplateId,
+        visit.formTemplateVersion,
+      );
+    },
+    [agenda],
+  );
+
   return (
     <View style={styles.screen}>
       <DeviceStatusBar
@@ -118,6 +129,7 @@ function Agenda() {
               online={device.online}
               starting={startingId === item.visitId}
               onStart={onStart}
+              onOpenForm={onOpenForm}
             />
           )}
           ListEmptyComponent={<Text style={styles.empty}>No hay visitas para hoy.</Text>}

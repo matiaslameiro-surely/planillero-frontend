@@ -61,6 +61,11 @@ export async function ensureAgendaSchema(db: SQLiteDatabase): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS idx_visit_audit_traces_visit ON visit_audit_traces (visit_id);
 
+      -- Columnas de formulario para el renderizador dinámico (PLAN-13).
+      ALTER TABLE agenda_visits ADD COLUMN form_template_id TEXT;
+      ALTER TABLE agenda_visits ADD COLUMN form_template_version INTEGER;
+      ALTER TABLE agenda_visits ADD COLUMN form_submitted_at TEXT;
+
       PRAGMA user_version = 2;
     `);
   }

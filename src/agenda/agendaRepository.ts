@@ -24,6 +24,12 @@ export interface AgendaVisit {
   urgency: VisitUrgency;
   /** `null` si la visita no se inició desde este dispositivo, aunque figure en curso. */
   start: StartInfo | null;
+  /** ID de la plantilla de formulario asociada (si hay). */
+  formTemplateId?: string;
+  /** Versión de la plantilla de formulario. */
+  formTemplateVersion?: number;
+  /** Timestamp de envío del formulario (si ya se envió). */
+  formSubmittedAt?: string;
 }
 
 /** Fila cruda de `agenda_visits`. */
@@ -41,6 +47,9 @@ export interface AgendaRow {
   start_longitude: number | null;
   start_accuracy_meters: number | null;
   started_at_server: string | null;
+  form_template_id: string | null;
+  form_template_version: number | null;
+  form_submitted_at: string | null;
 }
 
 /** Traduce una fila de SQLite al modelo que usa la pantalla. */
@@ -69,6 +78,9 @@ export function toAgendaVisit(row: AgendaRow): AgendaVisit {
           startedAt: row.started_at_server!,
         }
       : null,
+    formTemplateId: row.form_template_id ?? undefined,
+    formTemplateVersion: row.form_template_version ?? undefined,
+    formSubmittedAt: row.form_submitted_at ?? undefined,
   };
 }
 
@@ -90,8 +102,9 @@ export async function replaceDay(
     for (const { position, visit } of sheet.items) {
       await db.runAsync(
         `INSERT INTO agenda_visits
-           (route_date, visit_id, position, code, address, latitude, longitude, status, urgency)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+           (route_date, visit_id, position, code, address, latitude, longitude, status, urgency,
+            form_template_id, form_template_version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (route_date, visit_id) DO UPDATE SET
            position = excluded.position,
            code = excluded.code,
@@ -99,7 +112,9 @@ export async function replaceDay(
            latitude = excluded.latitude,
            longitude = excluded.longitude,
            status = excluded.status,
-           urgency = excluded.urgency`,
+           urgency = excluded.urgency,
+           form_template_id = excluded.form_template_id,
+           form_template_version = excluded.form_template_version`,
         [
           sheet.date,
           visit.id,
@@ -110,6 +125,8 @@ export async function replaceDay(
           visit.longitude,
           visit.status,
           visit.urgency,
+          visit.formTemplateId ?? null,
+          visit.formTemplateVersion ?? null,
         ],
       );
     }
