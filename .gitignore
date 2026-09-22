@@ -57,3 +57,6 @@ GEMINI.md
 
 # Tests
 coverage/
+
+# Salida de scripts/build-apk.sh
+/dist-apk

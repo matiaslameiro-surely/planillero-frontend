@@ -1,0 +1,23 @@
+# Contexto de build mínimo y sin secretos.
+.git
+.gitignore
+.gitattributes
+node_modules
+.expo
+dist
+dist-apk
+web-build
+coverage
+android
+ios
+.idea
+.vscode
+README.md
+
+# Nunca deben entrar en una imagen: el `.env` local podría pisar la URL que se pasa por build-arg.
+.env
+.env.*
+*.jks
+*.keystore
+*.pem
+*.key
