@@ -14,7 +14,9 @@
 # tablets de prueba, NO para publicar. Un release real necesita un keystore propio (fuera de alcance).
 
 # ---- Etapa de build ----
-FROM node:24-bookworm-slim AS build
+# Plataforma fija: el JDK de abajo y las herramientas nativas del Android SDK para Linux (aapt2, NDK)
+# sólo existen para x86_64. En un Mac con Apple Silicon Docker la emula (más lento, pero anda).
+FROM --platform=linux/amd64 node:24-bookworm-slim AS build
 
 ENV DEBIAN_FRONTEND=noninteractive \
     JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
@@ -54,6 +56,18 @@ ENV EXPO_PUBLIC_API_URL=${EXPO_PUBLIC_API_URL}
 
 # Genera el proyecto nativo (/android) a partir de app.json y compila el APK.
 RUN npx expo prebuild --platform android --no-install
+
+# Android bloquea HTTP sin TLS en los builds de release: `expo prebuild` sólo lo habilita en el manifest
+# de debug. Si el backend es `http://` (el compose local), se habilita acá, sólo en este APK de prueba:
+# la configuración de la app (app.json) no cambia. No se usa `assembleDebug` porque ese APK no trae el
+# JS adentro y espera un servidor de Metro.
+RUN case "${EXPO_PUBLIC_API_URL}" in \
+      http://*) \
+        sed -i 's|<application |<application android:usesCleartextTraffic="true" |' android/app/src/main/AndroidManifest.xml \
+        && grep -q 'android:usesCleartextTraffic="true"' android/app/src/main/AndroidManifest.xml \
+        || (echo "No se pudo habilitar HTTP en el AndroidManifest" >&2; exit 1) ;; \
+    esac
+
 RUN --mount=type=cache,target=/root/.gradle \
     cd android && sh ./gradlew assembleRelease --no-daemon \
     && mkdir -p /out && cp app/build/outputs/apk/release/*.apk /out/planillero.apk
