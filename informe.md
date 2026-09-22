@@ -27,7 +27,7 @@ Auditoría de seguridad del cliente móvil Planillero (React Native + Expo) conf
 
 ## Video Demostrativo
 
-**Enlace público:** `[PENDIENTE - Insertar URL de YouTube / Google Drive]`
+**Enlace público:** `[Diferido a backlog - PLAN-32]` — *Decisión de Sprint 4: el video consolidado (backend + móvil + backoffice) se graba y publica en PLAN-32. Guion listo abajo; URL se inserta al grabar.*
 
 **Parte móvil del video (incluida en video consolidado backend):**
 - Login + 2FA en app móvil
