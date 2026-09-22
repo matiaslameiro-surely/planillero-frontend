@@ -9,6 +9,7 @@ import {
   PanResponderGestureState,
 } from 'react-native';
 import { computeSha256 } from '@/api/evidence';
+import { MIN_TOUCH_TARGET } from '@/constants/layout';
 
 interface Point {
   x: number;
@@ -139,6 +140,9 @@ export function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
           style={[styles.button, styles.clearButton]}
           onPress={handleClear}
           disabled={!hasStrokes}
+          accessibilityRole="button"
+          accessibilityLabel="Limpiar trazo de firma"
+          accessibilityState={{ disabled: !hasStrokes }}
         >
           <Text style={[styles.buttonText, !hasStrokes && styles.disabledText]}>
             Limpiar trazo
@@ -146,7 +150,12 @@ export function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
         </TouchableOpacity>
 
         {onCancel && (
-          <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onCancel}>
+          <TouchableOpacity
+            style={[styles.button, styles.cancelButton]}
+            onPress={onCancel}
+            accessibilityRole="button"
+            accessibilityLabel="Cancelar captura de firma"
+          >
             <Text style={styles.cancelText}>Cancelar</Text>
           </TouchableOpacity>
         )}
@@ -155,6 +164,9 @@ export function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
           style={[styles.button, styles.confirmButton, !hasStrokes && styles.disabledButton]}
           onPress={handleConfirm}
           disabled={!hasStrokes}
+          accessibilityRole="button"
+          accessibilityLabel="Confirmar y guardar firma"
+          accessibilityState={{ disabled: !hasStrokes }}
         >
           <Text style={styles.confirmText}>Confirmar firma</Text>
         </TouchableOpacity>
@@ -181,7 +193,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#475569',
     marginTop: 2,
   },
   canvasContainer: {
@@ -189,7 +201,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: '#cbd5e1',
+    borderColor: '#94a3b8',
     borderStyle: 'dashed',
     position: 'relative',
     overflow: 'hidden',
@@ -200,13 +212,13 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     height: 1,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#cbd5e1',
   },
   guideText: {
     position: 'absolute',
     bottom: 42,
     left: 24,
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 12,
   },
   strokeSegment: {
@@ -224,7 +236,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   button: {
-    paddingVertical: 10,
+    minHeight: MIN_TOUCH_TARGET,
+    minWidth: MIN_TOUCH_TARGET,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -233,13 +247,13 @@ const styles = StyleSheet.create({
   clearButton: {
     backgroundColor: '#f1f5f9',
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#94a3b8',
   },
   cancelButton: {
     backgroundColor: 'transparent',
   },
   confirmButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#1d4ed8',
     flex: 1,
   },
   disabledButton: {
@@ -247,20 +261,20 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#334155',
+    fontWeight: '700',
+    color: '#1e293b',
   },
   disabledText: {
     color: '#94a3b8',
   },
   cancelText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#64748b',
+    fontWeight: '600',
+    color: '#475569',
   },
   confirmText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#ffffff',
   },
 });

@@ -1,5 +1,6 @@
 import { TextInput, View, Text, StyleSheet } from 'react-native';
 import type { FormFieldProps } from '../types';
+import { MIN_TOUCH_TARGET } from '@/constants/layout';
 
 export function FieldText({ name, schema, value, onChange, onBlur, error, touched, readonly, label, description, required }: FormFieldProps) {
   const maxLength = schema.maxLength;
@@ -17,6 +18,7 @@ export function FieldText({ name, schema, value, onChange, onBlur, error, touche
         editable={!readonly}
         maxLength={maxLength}
         placeholder={description}
+        accessibilityLabel={label}
         // Validación visual al escribir si hay pattern
         // Nota: la validación real se hace en useForm/validation.ts
       />
@@ -27,16 +29,18 @@ export function FieldText({ name, schema, value, onChange, onBlur, error, touche
 
 const styles = StyleSheet.create({
   container: { marginBottom: 16 },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: '#1a1a1a' },
-  required: { color: '#e53e3e' },
+  label: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: '#0f172a' },
+  required: { color: '#b91c1c' },
   input: {
     borderWidth: 1,
-    borderColor: '#cbd5e0',
+    borderColor: '#94a3b8',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    backgroundColor: '#fff',
+    minHeight: MIN_TOUCH_TARGET,
+    color: '#0f172a',
+    backgroundColor: '#ffffff',
   },
-  error: { marginTop: 4, fontSize: 12, color: '#e53e3e' },
+  error: { marginTop: 4, fontSize: 12, color: '#b91c1c', fontWeight: '600' },
 });

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 
 import { useSession } from '@/auth/SessionContext';
+import { MIN_TOUCH_TARGET } from '@/constants/layout';
 
 /** En qué paso del login está el usuario. */
 type Step = 'credentials' | 'twoFactor';
@@ -77,6 +78,7 @@ export default function Login() {
               autoCorrect={false}
               textContentType="username"
               editable={!submitting}
+              accessibilityLabel="Usuario"
             />
 
             <Text style={styles.label}>Contraseña</Text>
@@ -89,6 +91,7 @@ export default function Login() {
               textContentType="password"
               editable={!submitting}
               onSubmitEditing={() => void submitCredentials()}
+              accessibilityLabel="Contraseña"
             />
           </>
         ) : (
@@ -102,6 +105,7 @@ export default function Login() {
               maxLength={6}
               editable={!submitting}
               onSubmitEditing={() => void submitCode()}
+              accessibilityLabel="Código de verificación de 6 dígitos"
             />
           </>
         )}
@@ -109,10 +113,16 @@ export default function Login() {
         {error && <Text style={styles.error}>{error}</Text>}
 
         <Pressable
-          style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+          style={({ pressed }) => [
+            styles.button,
+            submitting && styles.buttonDisabled,
+            pressed && !submitting && styles.buttonPressed,
+          ]}
           onPress={() => void (step === 'credentials' ? submitCredentials() : submitCode())}
           disabled={submitting}
-          accessibilityRole="button">
+          accessibilityRole="button"
+          accessibilityLabel={step === 'credentials' ? 'Entrar a Planillero' : 'Verificar código de autenticación'}
+          accessibilityState={{ disabled: submitting }}>
           {submitting ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
@@ -133,34 +143,43 @@ function messageOf(failure: unknown, fallback: string): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 8 },
-  title: { fontSize: 32, fontWeight: '700' },
-  subtitle: { fontSize: 16, opacity: 0.6, marginBottom: 24 },
+  title: { fontSize: 32, fontWeight: '700', color: '#0f172a' },
+  subtitle: { fontSize: 16, color: '#475569', marginBottom: 24 },
   card: {
     width: '100%',
     maxWidth: 420,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#8888',
+    borderColor: '#94a3b8',
+    backgroundColor: '#ffffff',
     padding: 16,
     gap: 8,
   },
-  label: { fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.6 },
+  label: { fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5, color: '#334155', fontWeight: '600' },
   input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#8888',
+    borderWidth: 1,
+    borderColor: '#94a3b8',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
+    minHeight: MIN_TOUCH_TARGET,
+    color: '#0f172a',
+    backgroundColor: '#ffffff',
   },
-  error: { color: '#c0392b', fontSize: 14, marginTop: 4 },
+  error: { color: '#b91c1c', fontSize: 14, marginTop: 4, fontWeight: '600' },
   button: {
     marginTop: 16,
+    minHeight: MIN_TOUCH_TARGET,
+    minWidth: MIN_TOUCH_TARGET,
     paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 8,
     backgroundColor: '#208AEF',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  buttonPressed: { opacity: 0.7 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  buttonDisabled: { backgroundColor: '#94a3b8' },
+  buttonPressed: { opacity: 0.85 },
+  buttonText: { color: '#ffffff', fontWeight: '700', fontSize: 16 },
 });
