@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Button, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import type { JsonSchema, FormFieldProps, FormMode } from './types';
 import { renderField } from './fields';
 import { validateSchema, validateField } from './validation';
+import { MIN_TOUCH_TARGET } from '@/constants/layout';
 
 interface DynamicFormProps {
   /** JSON Schema completo del formulario. */
@@ -104,8 +105,23 @@ export function DynamicForm({
       })}
       {mode === 'edit' && (
         <View style={styles.buttonRow}>
-          <Button title={submitLabel} onPress={handleSubmit} disabled={!isValid || submitting} color="#2b6cb0" />
-          {submitting && <ActivityIndicator style={styles.spinner} />}
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              (!isValid || submitting) && styles.submitButtonDisabled,
+            ]}
+            onPress={handleSubmit}
+            disabled={!isValid || submitting}
+            accessibilityRole="button"
+            accessibilityLabel={submitLabel}
+            accessibilityState={{ disabled: !isValid || submitting }}
+          >
+            {submitting ? (
+              <ActivityIndicator color="#ffffff" style={styles.spinner} />
+            ) : (
+              <Text style={styles.submitButtonText}>{submitLabel}</Text>
+            )}
+          </TouchableOpacity>
         </View>
       )}
     </ScrollView>
@@ -116,6 +132,24 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
-  buttonRow: { alignItems: 'center', gap: 12, marginTop: 24 },
+  buttonRow: { alignItems: 'stretch', marginTop: 24 },
+  submitButton: {
+    minHeight: MIN_TOUCH_TARGET,
+    minWidth: MIN_TOUCH_TARGET,
+    backgroundColor: '#1d4ed8',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#94a3b8',
+  },
+  submitButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
   spinner: { marginLeft: 8 },
 });

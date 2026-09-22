@@ -3,9 +3,10 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import type { VisitStatus, VisitUrgency } from '@/api/visits';
 import type { AgendaVisit } from '@/agenda/agendaRepository';
 import { LocationSummary } from '@/components/LocationSummary';
+import { MIN_TOUCH_TARGET } from '@/constants/layout';
 
 /** Alto mínimo de un botón táctil, en dp: se usa con guantes y bajo el sol. */
-export const MIN_TOUCH_TARGET = 48;
+export { MIN_TOUCH_TARGET };
 
 const STATUS_LABEL: Record<VisitStatus, string> = {
   PENDING: 'Pendiente',

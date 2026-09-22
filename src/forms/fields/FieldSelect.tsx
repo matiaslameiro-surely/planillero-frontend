@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import type { FormFieldProps } from '../types';
+import { MIN_TOUCH_TARGET } from '@/constants/layout';
 
 export function FieldSelect({ name, schema, value, onChange, onBlur, error, touched, readonly, label, description, required }: FormFieldProps) {
   const enumValues = (schema.enum as string[]) ?? [];
@@ -16,6 +17,7 @@ export function FieldSelect({ name, schema, value, onChange, onBlur, error, touc
           enabled={!readonly}
           style={styles.picker}
           itemStyle={styles.pickerItem}
+          accessibilityLabel={label}
         >
           <Picker.Item label={description ?? 'Seleccionar...'} value="" />
           {enumValues.map((v) => (
@@ -30,10 +32,17 @@ export function FieldSelect({ name, schema, value, onChange, onBlur, error, touc
 
 const styles = StyleSheet.create({
   container: { marginBottom: 16 },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: '#1a1a1a' },
-  required: { color: '#e53e3e' },
-  pickerWrapper: { borderWidth: 1, borderColor: '#cbd5e0', borderRadius: 8, backgroundColor: '#fff' },
-  picker: { width: '100%', height: 50 },
-  pickerItem: { fontSize: 16 },
-  error: { marginTop: 4, fontSize: 12, color: '#e53e3e' },
+  label: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: '#0f172a' },
+  required: { color: '#b91c1c' },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: '#94a3b8',
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    minHeight: MIN_TOUCH_TARGET,
+    justifyContent: 'center',
+  },
+  picker: { width: '100%', minHeight: MIN_TOUCH_TARGET },
+  pickerItem: { fontSize: 16, color: '#0f172a' },
+  error: { marginTop: 4, fontSize: 12, color: '#b91c1c', fontWeight: '600' },
 });

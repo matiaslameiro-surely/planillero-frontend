@@ -9,7 +9,15 @@ import type { JsonSchema } from '@/forms/types';
 
 
 export default function FormularioScreen() {
-  const { visitId } = useLocalSearchParams<{ visitId?: string }>();
+  const {
+    visitId,
+    templateKey: paramKey,
+    templateVersion: paramVersion,
+  } = useLocalSearchParams<{
+    visitId?: string;
+    templateKey?: string;
+    templateVersion?: string;
+  }>();
 
   const [schema, setSchema] = React.useState<JsonSchema | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -22,14 +30,16 @@ export default function FormularioScreen() {
     async function load() {
       try {
         setLoading(true);
-        // Si hay visitId, intentar obtener la plantilla de la visita
-        // Por ahora asumimos que viene templateKey por query param o se elige de catálogo
-        const params = new URLSearchParams(window.location.search);
-        const tplKey = params.get('templateKey');
-        const tplVersion = params.get('templateVersion');
+        // Obtener la plantilla de la visita mediante query params nativos de Expo Router
+        const tplKey = paramKey ?? (typeof window !== 'undefined' && window.location?.search
+          ? new URLSearchParams(window.location.search).get('templateKey')
+          : null);
+        const rawVersion = paramVersion ?? (typeof window !== 'undefined' && window.location?.search
+          ? new URLSearchParams(window.location.search).get('templateVersion')
+          : null);
 
         if (tplKey) {
-          const tpl = await fetchTemplate(tplKey, tplVersion ? parseInt(tplVersion, 10) : undefined);
+          const tpl = await fetchTemplate(tplKey, rawVersion ? parseInt(rawVersion, 10) : undefined);
           setSchema(tpl.schema);
           setTemplateKey(tpl.key);
           setTemplateVersion(tpl.version);
@@ -44,7 +54,7 @@ export default function FormularioScreen() {
       }
     }
     load();
-  }, [visitId]);
+  }, [visitId, paramKey, paramVersion]);
 
   const { handleSubmit } = useForm({
     schema: schema ?? { type: 'object', properties: {}, required: [] },

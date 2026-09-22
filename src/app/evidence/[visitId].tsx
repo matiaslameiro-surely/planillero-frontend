@@ -22,6 +22,7 @@ import {
 import { SignaturePad } from '@/components/SignaturePad';
 import { insertTrace } from '@/audit/auditRepository';
 import { useDatabase } from '@/db/DatabaseProvider';
+import { MIN_TOUCH_TARGET } from '@/constants/layout';
 
 interface LocalPhotoDraft {
   id: string;
@@ -184,7 +185,12 @@ export default function EvidenceScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Volver a la pantalla anterior"
+        >
           <Text style={styles.backText}>← Volver</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Custodia de Evidencias</Text>
@@ -196,7 +202,12 @@ export default function EvidenceScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>1. Fotos Periciales de Ambiente</Text>
-          <TouchableOpacity style={styles.smallAddButton} onPress={handleAddSamplePhoto}>
+          <TouchableOpacity
+            style={styles.smallAddButton}
+            onPress={handleAddSamplePhoto}
+            accessibilityRole="button"
+            accessibilityLabel="Tomar fotografía de prueba pericial"
+          >
             <Text style={styles.smallAddText}>+ Tomar foto</Text>
           </TouchableOpacity>
         </View>
@@ -216,6 +227,8 @@ export default function EvidenceScreen() {
                   <TouchableOpacity
                     style={styles.deleteThumbnailBtn}
                     onPress={() => handleRemoveDraftPhoto(photo.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Eliminar foto ${photo.name}`}
                   >
                     <Text style={styles.deleteThumbnailText}>Eliminar</Text>
                   </TouchableOpacity>
@@ -238,6 +251,8 @@ export default function EvidenceScreen() {
           <TouchableOpacity
             style={styles.openSignatureBtn}
             onPress={() => setShowSignaturePad(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Abrir lienzo táctil de firma ológrafa"
           >
             <Text style={styles.openSignatureText}>Abrir lienzo de firma</Text>
           </TouchableOpacity>
@@ -263,6 +278,8 @@ export default function EvidenceScreen() {
                 setSignatureData(null);
                 setShowSignaturePad(true);
               }}
+              accessibilityRole="button"
+              accessibilityLabel="Reintentar captura de firma ológrafa"
             >
               <Text style={styles.retrySignatureText}>Reintentar firma</Text>
             </TouchableOpacity>
@@ -276,6 +293,9 @@ export default function EvidenceScreen() {
           style={[styles.actionButton, styles.uploadButton, uploading && styles.disabledBtn]}
           onPress={handleUploadAll}
           disabled={uploading}
+          accessibilityRole="button"
+          accessibilityLabel="Subir y almacenar evidencias digitales"
+          accessibilityState={{ disabled: uploading }}
         >
           {uploading ? (
             <ActivityIndicator color="#fff" />
@@ -315,6 +335,9 @@ export default function EvidenceScreen() {
             style={[styles.actionButton, styles.sealButton]}
             onPress={handleSealManifest}
             disabled={uploading || remoteEvidences.length === 0}
+            accessibilityRole="button"
+            accessibilityLabel="Sellar manifiesto pericial con HMAC"
+            accessibilityState={{ disabled: uploading || remoteEvidences.length === 0 }}
           >
             <Text style={styles.actionButtonText}>Sellar Manifiesto con HMAC</Text>
           </TouchableOpacity>
@@ -323,6 +346,9 @@ export default function EvidenceScreen() {
             style={[styles.actionButton, styles.verifyButton]}
             onPress={handleVerify}
             disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel="Auditar integridad criptográfica del manifiesto"
+            accessibilityState={{ disabled: loading }}
           >
             <Text style={styles.verifyButtonText}>Auditar Integridad</Text>
           </TouchableOpacity>
@@ -367,12 +393,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   backButton: {
+    minHeight: MIN_TOUCH_TARGET,
+    justifyContent: 'center',
     paddingRight: 12,
   },
   backText: {
-    color: '#2563eb',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#1d4ed8',
+    fontSize: 15,
+    fontWeight: '700',
   },
   headerTitle: {
     fontSize: 20,
@@ -381,7 +409,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#475569',
     marginBottom: 16,
   },
   section: {
@@ -390,7 +418,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#cbd5e1',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -401,21 +429,24 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1e293b',
+    color: '#0f172a',
     marginBottom: 8,
   },
   smallAddButton: {
     backgroundColor: '#eff6ff',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+    minHeight: MIN_TOUCH_TARGET,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: '#93c5fd',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   smallAddText: {
-    color: '#2563eb',
-    fontSize: 12,
-    fontWeight: '600',
+    color: '#1d4ed8',
+    fontSize: 14,
+    fontWeight: '700',
   },
   draftContainer: {
     marginTop: 8,
@@ -432,7 +463,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   thumbnailCard: {
-    width: 100,
+    width: 110,
     backgroundColor: '#f1f5f9',
     borderRadius: 8,
     padding: 6,
@@ -457,59 +488,68 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   deleteThumbnailBtn: {
+    minHeight: MIN_TOUCH_TARGET,
     marginTop: 4,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   deleteThumbnailText: {
-    color: '#ef4444',
-    fontSize: 11,
-    fontWeight: '600',
+    color: '#b91c1c',
+    fontSize: 13,
+    fontWeight: '700',
   },
   emptyNote: {
     fontSize: 13,
-    color: '#94a3b8',
+    color: '#64748b',
     fontStyle: 'italic',
   },
   openSignatureBtn: {
     backgroundColor: '#f8fafc',
-    paddingVertical: 14,
+    minHeight: MIN_TOUCH_TARGET,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: '#cbd5e1',
+    borderColor: '#94a3b8',
     borderStyle: 'dashed',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   openSignatureText: {
-    color: '#2563eb',
-    fontWeight: '600',
-    fontSize: 14,
+    color: '#1d4ed8',
+    fontWeight: '700',
+    fontSize: 15,
   },
   signatureCard: {
     backgroundColor: '#f0fdf4',
     borderWidth: 1,
-    borderColor: '#bbf7d0',
+    borderColor: '#86efac',
     borderRadius: 8,
     padding: 12,
   },
   signatureTitle: {
-    color: '#166534',
+    color: '#15803d',
     fontWeight: '700',
     fontSize: 14,
   },
   signatureHash: {
-    color: '#15803d',
+    color: '#166534',
     fontSize: 11,
     marginTop: 4,
   },
   retrySignatureBtn: {
+    minHeight: MIN_TOUCH_TARGET,
     marginTop: 8,
+    justifyContent: 'center',
   },
   retrySignatureText: {
-    color: '#2563eb',
-    fontSize: 12,
-    fontWeight: '600',
+    color: '#1d4ed8',
+    fontSize: 14,
+    fontWeight: '700',
   },
   actionButton: {
+    minHeight: MIN_TOUCH_TARGET,
+    minWidth: MIN_TOUCH_TARGET,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
