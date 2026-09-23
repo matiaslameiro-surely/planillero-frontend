@@ -45,7 +45,7 @@ La aplicación móvil de Planillero está diseñada para **operadores e inspecto
 - Código de colores convencional e inequívoco en el ámbito de seguridad y fiscalización.
 
 ### 3.3. ¿Se realizó prueba con usuario real de campo? ¿Qué feedback se obtuvo?
-**Sí.** Se ejecutó una sesión formal de prueba de campo simulada con un operador real de inspección técnica en condiciones operativas de tablet Android 10''. Los resultados se detallan en la Sección 5 de este informe.
+**Pendiente.** La prueba de campo con un usuario real está planificada pero aún no se ejecutó. El protocolo está definido en la Sección 5 de este informe; una vez realizada, esta subsección se completa con el feedback real del participante.
 
 ---
 
@@ -78,32 +78,39 @@ La aplicación móvil de Planillero está diseñada para **operadores e inspecto
 
 ## 5. Registro Formal de Pruebas con Usuario Real de Campo
 
+> **Estado: protocolo pendiente de ejecución.** La prueba de campo con un usuario real aún no se
+> realizó. Este registro queda preparado para documentarla: la ficha técnica se completa en el
+> momento de la sesión y las tareas T1–T6 son el protocolo que sigue el participante. Los datos del
+> participante se anonimizan: no se registran nombre ni legajo.
+
 ### Ficha Técnica de la Prueba
-- **Fecha:** 21 de Septiembre de 2026.
-- **Dispositivo utilizado:** Tablet Samsung Galaxy Tab A9+ 11'' (Android 14, densidad hdpi, 1920x1200 px).
-- **Entorno ambiental:** Exterior en acera urbana con iluminación solar diurna natural (14:30 hs, aprox. 45.000 lux).
-- **Condición física del operador:** De pie, portando guantes de protección industrial de nitrilo reforzado.
-- **Participante:** Operador Técnico de Inspección en Terreno (Inspector Operativo, 8 años de experiencia en relevamiento analógico/papel).
+
+| Campo | Dato |
+|---|---|
+| **Fecha** | \_\_ / \_\_ / \_\_\_\_ (a completar) |
+| **Dispositivo utilizado** | \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_ (a completar) |
+| **Entorno ambiental** | \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_ (a completar) |
+| **Condición física del operador** | \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_ (a completar) |
+| **Participante** | Operador de campo (rol del puesto, sin identificación) |
 
 ### Protocolo de Tareas Evaluadas
 
 | # | Tarea Solicitada al Operador | Tasa de Éxito | Tiempo Invertido | Desvíos o Errores Observados |
-|---|---|:---:|:---:|---|
-| **T1** | Iniciar sesión con usuario y contraseña provistos | **100%** (1/1) | 18 s | Ninguno. El teclado virtual numérico y la altura de inputs facilitaron el tipeo con guante. |
-| **T2** | Consultar la hoja de ruta e identificar la visita de mayor urgencia | **100%** (1/1) | 7 s | Inmediata identificación gracias al badge rojo «Urgencia alta». |
-| **T3** | Iniciar la visita georreferenciada en el domicilio | **100%** (1/1) | 9 s | Presionó el botón «Iniciar visita» sin vacilación. Reconoció el semáforo verde de GPS. |
-| **T4** | Completar formulario tipificado con datos de inspección | **100%** (1/1) | 42 s | Buen tamaño de chips de anomalías y selector de tipología. |
-| **T5** | Capturar firma ológrafa del inspeccionado en el lienzo táctil | **100%** (1/1) | 15 s | El usuario utilizó el botón «Limpiar trazo» en el primer intento para practicar y confirmó en el segundo. |
-| **T6** | Guardar evidencias y sellar el acta pericial | **100%** (1/1) | 12 s | Visualizó la confirmación «✓ INTEGRIDAD VERIFICADA» con satisfacción. |
+|---|---|---|---|---|
+| **T1** | Iniciar sesión con usuario y contraseña provistos | (a completar) | (a completar) | (a completar) |
+| **T2** | Consultar la hoja de ruta e identificar la visita de mayor urgencia | (a completar) | (a completar) | (a completar) |
+| **T3** | Iniciar la visita georreferenciada en el domicilio | (a completar) | (a completar) | (a completar) |
+| **T4** | Completar formulario tipificado con datos de inspección | (a completar) | (a completar) | (a completar) |
+| **T5** | Capturar firma ológrafa del inspeccionado en el lienzo táctil | (a completar) | (a completar) | (a completar) |
+| **T6** | Guardar evidencias y sellar el acta pericial | (a completar) | (a completar) | (a completar) |
 
 ### Métricas Consolidadas de Usabilidad
-- **Tasa de éxito global:** **100%** (6 de 6 tareas completadas sin intervención del facilitador).
-- **Tiempo promedio total de relevamiento:** **1 minuto 43 segundos** (frente a un promedio histórico de 12 a 15 minutos en planillas de papel autocopiativo).
-- **Escala de Usabilidad del Sistema (SUS Score aproximado):** **92.5 / 100** (Rango Excelente / Grado A+).
+
+(a completar al ejecutar la prueba: tasa de éxito global, tiempos por tarea y lectura cualitativa del participante)
 
 ### Reporte de Feedback Cualitativo del Operador
-> *"Se lee perfecto incluso con el reflejo del sol en la calle, no tuve que tapar la pantalla con la mano como me pasa con otras aplicaciones. Los botones son grandes y no le erré a ninguno a pesar de tener los guantes puestos. Me dio mucha tranquilidad ver que la barra de arriba me avisa claramente si tengo señal o no y que las fotos quedan guardadas con el tilde verde."*
-> — **Inspector Técnico de Campo**
+
+(a completar al ejecutar la prueba: se transcribe la opinión del participante, sin datos identificatorios)
 
 ---
 
@@ -113,4 +120,4 @@ La evaluación confirma que la aplicación móvil `planillero-frontend` satisfac
 1. Cumple de forma exhaustiva con las **10 Heurísticas de Jakob Nielsen**.
 2. Garantiza targets táctiles >= 48x48 dp en el 100% de los controles interactivos de la aplicación.
 3. Ofrece niveles de contraste y visibilidad que superan las directrices WCAG AA/AAA para uso diurno exterior bajo luz solar.
-4. Ha sido validada exitosamente en una prueba de campo con usuario real, demostrando alta eficiencia y aceptación operativa.
+4. La prueba de campo con usuario real queda **pendiente de ejecución** (protocolo definido en la Sección 5); la evaluación ergonómica y heurística que sí pudo verificarse por inspección del código y lineamientos aplicados figura en las Secciones 2 a 4. Al ejecutarse la prueba, esta conclusión se actualiza con los resultados reales.
