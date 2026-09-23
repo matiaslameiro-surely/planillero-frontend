@@ -32,6 +32,10 @@ npx tsc --noEmit    # chequeo de tipos
 npm test            # tests con Jest
 ```
 
+El lint corre **sin caché** (`--no-cache`). La caché de ESLint no se invalida cuando cambia
+`node_modules`: si el lint corre antes de un `npm install`, un «Unable to resolve path to module» queda
+guardado y se repite aunque la dependencia ya esté instalada. Sin caché tarda apenas un segundo más.
+
 ## Autenticación
 
 La app implementa el flujo completo de sesión contra el backend:
