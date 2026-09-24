@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import type { VisitStatus, VisitUrgency } from '@/api/visits';
 import type { AgendaVisit } from '@/agenda/agendaRepository';
 import { LocationSummary } from '@/components/LocationSummary';
-import { MIN_TOUCH_TARGET } from '@/constants/layout';
+import { MIN_TOUCH_TARGET, useThemeColors, type ThemeColors } from '@/constants/layout';
 
 /** Alto mínimo de un botón táctil, en dp: se usa con guantes y bajo el sol. */
 export { MIN_TOUCH_TARGET };
@@ -21,6 +21,19 @@ const URGENCY_LABEL: Record<VisitUrgency, string> = {
   MEDIUM: 'Urgencia media',
   LOW: 'Urgencia baja',
 };
+
+function getStatusColor(status: VisitStatus, colors: ThemeColors): string {
+  switch (status) {
+    case 'IN_PROGRESS':
+      return colors.primary;
+    case 'COMPLETED':
+      return colors.success;
+    case 'CANCELLED':
+      return colors.danger;
+    default:
+      return colors.textSecondary;
+  }
+}
 
 interface VisitCardProps {
   visit: AgendaVisit;
@@ -46,6 +59,7 @@ export function VisitCard({
   onStart,
   onOpenForm,
 }: VisitCardProps) {
+  const colors = useThemeColors();
   const canStart = visit.status === 'ASSIGNED';
   const disabledStart = !online || starting;
 
@@ -54,13 +68,15 @@ export function VisitCard({
   const canOpenForm = (visit.status === 'ASSIGNED' || visit.status === 'IN_PROGRESS') && hasFormTemplate;
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
       <View style={styles.header}>
-        <Text style={styles.code}>{visit.code}</Text>
-        <Text style={styles.status}>{STATUS_LABEL[visit.status]}</Text>
+        <Text style={[styles.code, { color: colors.textPrimary }]}>{visit.code}</Text>
+        <Text style={[styles.status, { color: getStatusColor(visit.status, colors) }]}>
+          {STATUS_LABEL[visit.status]}
+        </Text>
       </View>
-      <Text style={styles.address}>{visit.address}</Text>
-      <Text style={styles.urgency}>{URGENCY_LABEL[visit.urgency]}</Text>
+      <Text style={[styles.address, { color: colors.textSecondary }]}>{visit.address}</Text>
+      <Text style={[styles.urgency, { color: colors.textMuted }]}>{URGENCY_LABEL[visit.urgency]}</Text>
 
       {visit.status === 'IN_PROGRESS' && visit.start ? (
         <LocationSummary
@@ -76,7 +92,8 @@ export function VisitCard({
           <Pressable
             style={({ pressed }) => [
               styles.button,
-              disabledStart && styles.buttonDisabled,
+              { backgroundColor: colors.primary },
+              disabledStart && { backgroundColor: colors.borderStrong },
               pressed && !disabledStart && styles.buttonPressed,
             ]}
             onPress={() => onStart(visit)}
@@ -91,7 +108,9 @@ export function VisitCard({
             )}
           </Pressable>
           {!online ? (
-            <Text style={styles.hint}>Iniciar la visita requiere conexión con el servidor.</Text>
+            <Text style={[styles.hint, { color: colors.textMuted }]}>
+              Iniciar la visita requiere conexión con el servidor.
+            </Text>
           ) : null}
         </>
       ) : null}
@@ -118,13 +137,12 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#8888',
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   code: { fontSize: 18, fontWeight: '700' },
   status: { fontSize: 14, fontWeight: '600' },
   address: { fontSize: 16 },
-  urgency: { fontSize: 14, opacity: 0.8 },
+  urgency: { fontSize: 14 },
   button: {
     minHeight: MIN_TOUCH_TARGET,
     minWidth: MIN_TOUCH_TARGET,
@@ -138,7 +156,7 @@ const styles = StyleSheet.create({
   buttonDisabled: { backgroundColor: '#8888' },
   buttonPressed: { opacity: 0.85 },
   buttonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  hint: { fontSize: 13, opacity: 0.8 },
+  hint: { fontSize: 13 },
   buttonForm: {
     minHeight: MIN_TOUCH_TARGET,
     minWidth: MIN_TOUCH_TARGET,

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 
 import { useSession } from '@/auth/SessionContext';
-import { MIN_TOUCH_TARGET } from '@/constants/layout';
+import { MIN_TOUCH_TARGET, useThemeColors } from '@/constants/layout';
 
 /** En qué paso del login está el usuario. */
 type Step = 'credentials' | 'twoFactor';
@@ -29,6 +29,7 @@ export default function Login() {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const colors = useThemeColors();
 
   if (status === 'signedIn') {
     return <Redirect href="/" />;
@@ -59,36 +60,54 @@ export default function Login() {
     }
   };
 
+  const inputStyle = [
+    styles.input,
+    {
+      color: colors.textPrimary,
+      backgroundColor: colors.bgSurface,
+      borderColor: colors.borderDefault,
+    },
+  ];
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Planillero</Text>
-      <Text style={styles.subtitle}>
+    <View style={[styles.container, { backgroundColor: colors.bgBackdrop }]}>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>Planillero</Text>
+      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
         {step === 'credentials' ? 'Iniciá sesión' : 'Ingresá el código de verificación'}
       </Text>
 
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.bgSurface,
+            borderColor: colors.borderDefault,
+          },
+        ]}>
         {step === 'credentials' ? (
           <>
-            <Text style={styles.label}>Usuario</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Usuario</Text>
             <TextInput
-              style={styles.input}
+              style={inputStyle}
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
               autoCorrect={false}
               textContentType="username"
+              placeholderTextColor={colors.textMuted}
               editable={!submitting}
               accessibilityLabel="Usuario"
             />
 
-            <Text style={styles.label}>Contraseña</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Contraseña</Text>
             <TextInput
-              style={styles.input}
+              style={inputStyle}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
               autoCapitalize="none"
               textContentType="password"
+              placeholderTextColor={colors.textMuted}
               editable={!submitting}
               onSubmitEditing={() => void submitCredentials()}
               accessibilityLabel="Contraseña"
@@ -96,13 +115,14 @@ export default function Login() {
           </>
         ) : (
           <>
-            <Text style={styles.label}>Código de 6 dígitos</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Código de 6 dígitos</Text>
             <TextInput
-              style={styles.input}
+              style={inputStyle}
               value={code}
               onChangeText={setCode}
               keyboardType="number-pad"
               maxLength={6}
+              placeholderTextColor={colors.textMuted}
               editable={!submitting}
               onSubmitEditing={() => void submitCode()}
               accessibilityLabel="Código de verificación de 6 dígitos"
@@ -110,12 +130,13 @@ export default function Login() {
           </>
         )}
 
-        {error && <Text style={styles.error}>{error}</Text>}
+        {error && <Text style={[styles.error, { color: colors.danger }]}>{error}</Text>}
 
         <Pressable
           style={({ pressed }) => [
             styles.button,
-            submitting && styles.buttonDisabled,
+            { backgroundColor: colors.primary },
+            submitting && { backgroundColor: colors.borderStrong },
             pressed && !submitting && styles.buttonPressed,
           ]}
           onPress={() => void (step === 'credentials' ? submitCredentials() : submitCode())}
@@ -143,31 +164,26 @@ function messageOf(failure: unknown, fallback: string): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 8 },
-  title: { fontSize: 32, fontWeight: '700', color: '#0f172a' },
-  subtitle: { fontSize: 16, color: '#475569', marginBottom: 24 },
+  title: { fontSize: 32, fontWeight: '700' },
+  subtitle: { fontSize: 16, marginBottom: 24 },
   card: {
     width: '100%',
     maxWidth: 420,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#94a3b8',
-    backgroundColor: '#ffffff',
     padding: 16,
     gap: 8,
   },
-  label: { fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5, color: '#334155', fontWeight: '600' },
+  label: { fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '600' },
   input: {
     borderWidth: 1,
-    borderColor: '#94a3b8',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
     minHeight: MIN_TOUCH_TARGET,
-    color: '#0f172a',
-    backgroundColor: '#ffffff',
   },
-  error: { color: '#b91c1c', fontSize: 14, marginTop: 4, fontWeight: '600' },
+  error: { fontSize: 14, marginTop: 4, fontWeight: '600' },
   button: {
     marginTop: 16,
     minHeight: MIN_TOUCH_TARGET,
@@ -175,7 +191,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: '#208AEF',
     alignItems: 'center',
     justifyContent: 'center',
   },

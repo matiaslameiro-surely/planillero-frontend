@@ -13,6 +13,7 @@ import { useDatabase } from '@/db/DatabaseProvider';
 import { useDeviceStatus } from '@/status/useDeviceStatus';
 import { useSyncQueue } from '@/sync/useSyncQueue';
 import { startVisit } from '@/visit/startVisit';
+import { useThemeColors } from '@/constants/layout';
 
 /**
  * Pantalla "Hoja de Ruta": las visitas del día del operador.
@@ -41,6 +42,7 @@ function Agenda() {
   const database = useDatabase();
   const date = useMemo(() => localDateString(), []);
   const agenda = useAgenda(date, device.online);
+  const colors = useThemeColors();
   // La cola se despacha sola al volver la conexión: acá sólo se muestra en qué anda.
   const queue = useSyncQueue(device.online);
 
@@ -82,7 +84,7 @@ function Agenda() {
   );
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: colors.bgBackdrop }]}>
       <DeviceStatusBar
         online={device.online}
         batteryLevel={device.batteryLevel}
@@ -98,25 +100,25 @@ function Agenda() {
       />
 
       <View style={styles.header}>
-        <Text style={styles.title}>Hoja de ruta</Text>
-        <Text style={styles.date}>{date}</Text>
-        <Text style={styles.sync}>{syncText(agenda.lastSyncedAt)}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Hoja de ruta</Text>
+        <Text style={[styles.date, { color: colors.textSecondary }]}>{date}</Text>
+        <Text style={[styles.sync, { color: colors.textMuted }]}>{syncText(agenda.lastSyncedAt)}</Text>
         {agenda.sync === 'failed' ? (
-          <Text style={styles.warning}>
+          <Text style={[styles.warning, { color: colors.danger }]}>
             No se pudo actualizar la agenda. Se muestra la última copia guardada.
           </Text>
         ) : null}
-        {notice ? <Text style={styles.warning}>{notice}</Text> : null}
+        {notice ? <Text style={[styles.warning, { color: colors.warning }]}>{notice}</Text> : null}
       </View>
 
       {agenda.database === 'opening' ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" />
-          <Text>Abriendo la base local…</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ color: colors.textSecondary }}>Abriendo la base local…</Text>
         </View>
       ) : agenda.database === 'error' ? (
         <View style={styles.center}>
-          <Text style={styles.warning}>{agenda.databaseError}</Text>
+          <Text style={[styles.warning, { color: colors.danger }]}>{agenda.databaseError}</Text>
         </View>
       ) : (
         <FlatList
@@ -132,7 +134,7 @@ function Agenda() {
               onOpenForm={onOpenForm}
             />
           )}
-          ListEmptyComponent={<Text style={styles.empty}>No hay visitas para hoy.</Text>}
+          ListEmptyComponent={<Text style={[styles.empty, { color: colors.textMuted }]}>No hay visitas para hoy.</Text>}
           refreshControl={
             <RefreshControl
               refreshing={agenda.sync === 'syncing'}
@@ -162,9 +164,9 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
   header: { padding: 16, gap: 4 },
   title: { fontSize: 26, fontWeight: '700' },
-  date: { fontSize: 16, opacity: 0.7 },
-  sync: { fontSize: 13, opacity: 0.7 },
-  warning: { fontSize: 14, fontWeight: '600', color: '#c0392b' },
+  date: { fontSize: 16 },
+  sync: { fontSize: 13 },
+  warning: { fontSize: 14, fontWeight: '600' },
   list: { padding: 16, gap: 12 },
-  empty: { textAlign: 'center', marginTop: 32, fontSize: 16, opacity: 0.7 },
+  empty: { textAlign: 'center', marginTop: 32, fontSize: 16 },
 });
