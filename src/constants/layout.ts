@@ -1,3 +1,5 @@
+import { useColorScheme } from 'react-native';
+
 /**
  * Tokens ergonómicos y directrices de accesibilidad táctil para uso en campo.
  *
@@ -17,7 +19,24 @@ export const ERGONOMIC_SPACING = {
   xl: 24,
 } as const;
 
-export const HIGH_CONTRAST_COLORS = {
+export interface ThemeColors {
+  readonly textPrimary: string;
+  readonly textSecondary: string;
+  readonly textMuted: string;
+  readonly textInverse: string;
+  readonly borderDefault: string;
+  readonly borderStrong: string;
+  readonly borderFocus: string;
+  readonly bgSurface: string;
+  readonly bgBackdrop: string;
+  readonly primary: string;
+  readonly primaryActive: string;
+  readonly success: string;
+  readonly warning: string;
+  readonly danger: string;
+}
+
+export const LIGHT_THEME: ThemeColors = {
   textPrimary: '#0f172a',
   textSecondary: '#334155',
   textMuted: '#64748b',
@@ -32,4 +51,31 @@ export const HIGH_CONTRAST_COLORS = {
   success: '#15803d',
   warning: '#b45309',
   danger: '#b91c1c',
-} as const;
+};
+
+export const DARK_THEME: ThemeColors = {
+  textPrimary: '#f8fafc',
+  textSecondary: '#cbd5e1',
+  textMuted: '#94a3b8',
+  textInverse: '#0f172a',
+  borderDefault: '#334155',
+  borderStrong: '#475569',
+  borderFocus: '#3b82f6',
+  bgSurface: '#1e293b',
+  bgBackdrop: '#0f172a',
+  primary: '#3b82f6',
+  primaryActive: '#60a5fa',
+  success: '#22c55e',
+  warning: '#f59e0b',
+  danger: '#ef4444',
+};
+
+export const HIGH_CONTRAST_COLORS = LIGHT_THEME;
+
+/**
+ * Hook para obtener la paleta de colores según el tema activo del sistema (claro u oscuro).
+ */
+export function useThemeColors(): ThemeColors {
+  const scheme = useColorScheme();
+  return scheme === 'dark' ? DARK_THEME : LIGHT_THEME;
+}
