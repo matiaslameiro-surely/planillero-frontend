@@ -1,7 +1,8 @@
-import { StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { StyleSheet, Text, useColorScheme } from 'react-native';
 import { act, create } from 'react-test-renderer';
 
 import { DeviceStatusBar } from '@/components/DeviceStatusBar';
+import { contrastRatio } from '@/constants/contrast';
 import { DARK_THEME, LIGHT_THEME } from '@/constants/layout';
 
 jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
@@ -59,24 +60,6 @@ describe('DeviceStatusBar', () => {
   });
 });
 
-/** Luminancia relativa de un color `#rrggbb`, según WCAG 2.1. */
-function relativeLuminance(hex: string): number {
-  const channels = [1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16) / 255);
-  const [r, g, b] = channels.map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-/** Relación de contraste WCAG entre dos colores `#rrggbb`. */
-function contrastRatio(foreground: string, background: string): number {
-  const [lighter, darker] = [relativeLuminance(foreground), relativeLuminance(background)].sort((a, b) => b - a);
-  return (lighter + 0.05) / (darker + 0.05);
-}
-
-/** Normaliza `#fff` a `#ffffff` para poder calcular el contraste. */
-function expandHex(hex: string): string {
-  return hex.length === 4 ? `#${[...hex.slice(1)].map((c) => c + c).join('')}` : hex;
-}
-
 function renderBar(props: Parameters<typeof DeviceStatusBar>[0]) {
   let renderer!: ReturnType<typeof create>;
   act(() => {
@@ -88,13 +71,8 @@ function renderBar(props: Parameters<typeof DeviceStatusBar>[0]) {
     if (!text) throw new Error(`No se encontró el texto «${label}»`);
     return StyleSheet.flatten(text.props.style);
   };
-  const chipBackground = (label: string) => {
-    const text = renderer.root.findAllByType(Text).find((t) => t.props.children === label)!;
-    const chip = text.parent!.parent as unknown as { type: unknown; props: { style: unknown } };
-    expect(chip.type).toBe(View);
-    return StyleSheet.flatten(chip.props.style as never) as { backgroundColor: string };
-  };
-  return { barStyle: StyleSheet.flatten(bar.props.style), textStyle, chipBackground };
+  const chip = renderer.root.findByProps({ testID: 'device-status-mode' });
+  return { barStyle: StyleSheet.flatten(bar.props.style), textStyle, chipStyle: StyleSheet.flatten(chip.props.style) };
 }
 
 describe.each([
@@ -143,9 +121,10 @@ describe.each([
     [true, 'Modo conectado'],
     [false, 'Modo offline'],
   ])('el chip con online=%s tiene contraste de al menos 4.5:1 entre texto y fondo', (online, label) => {
-    const { textStyle, chipBackground } = renderBar({ ...base, online });
-    const textColor = expandHex(textStyle(label).color as string);
+    const { textStyle, chipStyle } = renderBar({ ...base, online });
 
-    expect(contrastRatio(textColor, chipBackground(label).backgroundColor)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(textStyle(label).color as string, chipStyle.backgroundColor as string)).toBeGreaterThanOrEqual(
+      4.5,
+    );
   });
 });

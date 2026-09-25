@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { useThemeColors } from '@/constants/layout';
+import { LIGHT_THEME, useThemeColors } from '@/constants/layout';
 import type { GpsState } from '@/status/useDeviceStatus';
 
 interface DeviceStatusBarProps {
@@ -43,7 +43,7 @@ export function DeviceStatusBar({ online, batteryLevel, gps, pendingVisits }: De
       accessibilityRole="summary"
       accessibilityLabel="Estado del dispositivo"
     >
-      <View style={[styles.mode, online ? styles.modeOnline : styles.modeOffline]}>
+      <View testID="device-status-mode" style={[styles.mode, online ? styles.modeOnline : styles.modeOffline]}>
         <Text style={styles.modeText}>{online ? 'Modo conectado' : 'Modo offline'}</Text>
       </View>
       <Text style={[styles.item, itemColor]}>{battery}</Text>
@@ -67,10 +67,11 @@ const styles = StyleSheet.create({
   },
   mode: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
   // Fijos en los dos temas: el chip lleva su propio fondo y el texto siempre es blanco. El verde es
-  // el `success` del tema claro (5.02:1 con blanco); el anterior, #1a9e5c, daba 3.45:1.
-  modeOnline: { backgroundColor: '#15803d' },
+  // el `success` del tema claro (5.02:1 con blanco); el anterior, #1a9e5c, daba 3.45:1. El `success`
+  // del tema oscuro no sirve acá: es un verde claro pensado para texto, no para fondo.
+  modeOnline: { backgroundColor: LIGHT_THEME.success },
   modeOffline: { backgroundColor: '#c0392b' },
-  modeText: { color: '#fff', fontWeight: '700' },
+  modeText: { color: LIGHT_THEME.textInverse, fontWeight: '700' },
   item: { fontSize: 14 },
   itemWarning: { fontWeight: '700' },
 });
