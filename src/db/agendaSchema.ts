@@ -3,6 +3,13 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 /** Versión actual del esquema local. Sube cuando se agrega un paso de migración. */
 export const AGENDA_SCHEMA_VERSION = 4;
 
+/** Columnas de formulario que agrega el paso 4 sobre `agenda_visits`. */
+const FORM_COLUMNS = [
+  { name: 'form_template_id', type: 'TEXT' },
+  { name: 'form_template_version', type: 'INTEGER' },
+  { name: 'form_submitted_at', type: 'TEXT' },
+] as const;
+
 /**
  * Crea o migra las tablas locales de la agenda.
  *
@@ -103,12 +110,21 @@ export async function ensureAgendaSchema(db: SQLiteDatabase): Promise<void> {
   }
 
   if (version < 4) {
-    // Columnas de formulario para el renderizador dinámico (PLAN-13) — dispositivos que ya
-    // migraron a v2 (auditoría) o v3 (cola sync) no recibieron estas columnas.
+    // Columnas de formulario para el renderizador dinámico (PLAN-13), que la tabla del paso 1 no
+    // tiene.
+    //
+    // Sólo se agregan las que faltan: el paso 2 publicado antes de PLAN-47 ya las agregaba, así que
+    // hay dispositivos en v2 o v3 que las tienen y un `ADD COLUMN` fijo los traba con
+    // «duplicate column name». Es la excepción a no editar un paso publicado: donde ya corrió no se
+    // repite, y donde no corrió es justamente el que falla (PLAN-52).
+    const existing = await db.getAllAsync<{ name: string }>('PRAGMA table_info(agenda_visits)');
+    const existingNames = new Set(existing.map((column) => column.name));
+    const additions = FORM_COLUMNS.filter((column) => !existingNames.has(column.name))
+      .map((column) => `ALTER TABLE agenda_visits ADD COLUMN ${column.name} ${column.type};`)
+      .join('\n');
+
     await db.execAsync(`
-      ALTER TABLE agenda_visits ADD COLUMN form_template_id TEXT;
-      ALTER TABLE agenda_visits ADD COLUMN form_template_version INTEGER;
-      ALTER TABLE agenda_visits ADD COLUMN form_submitted_at TEXT;
+      ${additions}
 
       PRAGMA user_version = 4;
     `);

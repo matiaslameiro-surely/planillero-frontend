@@ -4,7 +4,7 @@ Aplicación móvil de Planillero. React Native con Expo (SDK 57) y TypeScript.
 
 ## Requisitos
 
-- **Node 20+**
+- **Node 22.13+ o 24.3+** (el rango de `engines` en `package.json`; `.nvmrc` fija 24.15.0). Los tests de la base local usan `node:sqlite`, que no está en Node 20.
 - La app de **Expo Go** en el teléfono, o un emulador de Android / simulador de iOS
 
 No hace falta instalar el CLI de Expo: viene como dependencia del proyecto.
