@@ -10,23 +10,26 @@ import { ensureAgendaSchema } from '@/db/agendaSchema';
  * arma, pero no que SQLite lo acepte. Acá el mismo `ensureAgendaSchema` corre sobre una base en
  * memoria de `node:sqlite`, con los estados que dejaron las versiones publicadas en los dispositivos.
  *
- * `node:sqlite` viene con Node desde la 22.13. Con un Node anterior la suite se saltea y lo dice en
- * el nombre, en vez de fallar por un módulo que no existe.
+ * `node:sqlite` viene con Node desde la 22.13, que es el mínimo que declara `engines` en
+ * `package.json`. Con un Node anterior la suite falla con un mensaje que lo dice: saltearla dejaría
+ * sin probar contra SQLite real justo el caso que originó el bug, sin que nadie se entere.
  */
 
 type NodeSqlite = typeof import('node:sqlite');
 
-function loadNodeSqlite(): NodeSqlite | null {
+function loadNodeSqlite(): NodeSqlite {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require('node:sqlite') as NodeSqlite;
-  } catch {
-    return null;
+  } catch (error) {
+    throw new Error(
+      `Estos tests necesitan node:sqlite (Node 22.13 o superior) y se están corriendo con Node ${process.versions.node}.`,
+      { cause: error },
+    );
   }
 }
 
 const nodeSqlite = loadNodeSqlite();
-const describeWithSqlite = nodeSqlite ? describe : describe.skip;
 
 /** Adapta una base de `node:sqlite` a la parte de `SQLiteDatabase` que usa la migración. */
 function asExpoDatabase(db: DatabaseSync): SQLiteDatabase {
@@ -41,7 +44,7 @@ function asExpoDatabase(db: DatabaseSync): SQLiteDatabase {
 }
 
 function openMemoryDatabase(): DatabaseSync {
-  return new nodeSqlite!.DatabaseSync(':memory:');
+  return new nodeSqlite.DatabaseSync(':memory:');
 }
 
 function userVersion(db: DatabaseSync): number {
@@ -82,49 +85,46 @@ function createAgendaVisits(db: DatabaseSync, formColumns: string[]): void {
 
 const FORM_COLUMNS = ['form_template_id', 'form_template_version', 'form_submitted_at'];
 
-describeWithSqlite(
-  nodeSqlite ? 'agendaSchema contra SQLite real' : 'agendaSchema contra SQLite real (requiere Node 22.13+)',
-  () => {
-    it('migra una base nueva hasta la versión 4 con las columnas de formulario', async () => {
-      const db = openMemoryDatabase();
+describe('agendaSchema contra SQLite real', () => {
+  it('migra una base nueva hasta la versión 4 con las columnas de formulario', async () => {
+    const db = openMemoryDatabase();
 
-      await ensureAgendaSchema(asExpoDatabase(db));
+    await ensureAgendaSchema(asExpoDatabase(db));
 
-      expect(userVersion(db)).toBe(4);
-      expect(agendaColumns(db)).toEqual(expect.arrayContaining(FORM_COLUMNS));
-    });
+    expect(userVersion(db)).toBe(4);
+    expect(agendaColumns(db)).toEqual(expect.arrayContaining(FORM_COLUMNS));
+  });
 
-    it.each([
-      { from: 2, present: FORM_COLUMNS },
-      { from: 3, present: FORM_COLUMNS },
-      { from: 2, present: ['form_template_id'] },
-      { from: 3, present: ['form_template_id', 'form_submitted_at'] },
-      { from: 3, present: [] },
-    ])('desde la versión $from con $present llega a la versión 4 sin error', async ({ from, present }) => {
-      const db = openMemoryDatabase();
-      createAgendaVisits(db, present);
-      db.exec(`PRAGMA user_version = ${from};`);
+  it.each([
+    { from: 2, present: FORM_COLUMNS },
+    { from: 3, present: FORM_COLUMNS },
+    { from: 2, present: ['form_template_id'] },
+    { from: 3, present: ['form_template_id', 'form_submitted_at'] },
+    { from: 3, present: [] },
+  ])('desde la versión $from con $present llega a la versión 4 sin error', async ({ from, present }) => {
+    const db = openMemoryDatabase();
+    createAgendaVisits(db, present);
+    db.exec(`PRAGMA user_version = ${from};`);
 
-      await ensureAgendaSchema(asExpoDatabase(db));
+    await ensureAgendaSchema(asExpoDatabase(db));
 
-      expect(userVersion(db)).toBe(4);
-      const columns = agendaColumns(db);
-      for (const column of FORM_COLUMNS) {
-        expect(columns.filter((name) => name === column)).toHaveLength(1);
-      }
-      // La migración agrega columnas: las filas que ya estaban se conservan.
-      expect(db.prepare('SELECT code FROM agenda_visits').all()).toEqual([{ code: 'V-0001' }]);
-    });
+    expect(userVersion(db)).toBe(4);
+    const columns = agendaColumns(db);
+    for (const column of FORM_COLUMNS) {
+      expect(columns.filter((name) => name === column)).toHaveLength(1);
+    }
+    // La migración agrega columnas: las filas que ya estaban se conservan.
+    expect(db.prepare('SELECT code FROM agenda_visits').all()).toEqual([{ code: 'V-0001' }]);
+  });
 
-    it('es idempotente: volver a correrla sobre una base en versión 4 no falla ni cambia nada', async () => {
-      const db = openMemoryDatabase();
-      await ensureAgendaSchema(asExpoDatabase(db));
-      const columnsBefore = agendaColumns(db);
+  it('es idempotente: volver a correrla sobre una base en versión 4 no falla ni cambia nada', async () => {
+    const db = openMemoryDatabase();
+    await ensureAgendaSchema(asExpoDatabase(db));
+    const columnsBefore = agendaColumns(db);
 
-      await ensureAgendaSchema(asExpoDatabase(db));
+    await ensureAgendaSchema(asExpoDatabase(db));
 
-      expect(userVersion(db)).toBe(4);
-      expect(agendaColumns(db)).toEqual(columnsBefore);
-    });
-  },
-);
+    expect(userVersion(db)).toBe(4);
+    expect(agendaColumns(db)).toEqual(columnsBefore);
+  });
+});
