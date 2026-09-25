@@ -5,7 +5,7 @@ import { completeVisit as postCompleteVisit, type CompleteVisitResponse } from '
 import { markCompleted } from '@/agenda/agendaRepository';
 import { insertTrace } from '@/audit/auditRepository';
 
-export type CompleteFailure = 'offline' | 'not_assigned' | 'not_in_progress' | 'server';
+export type CompleteFailure = 'offline' | 'not_assigned' | 'not_found' | 'not_in_progress' | 'server';
 
 export type CompleteOutcome =
   | { kind: 'completed'; response: CompleteVisitResponse }
@@ -15,6 +15,7 @@ export type CompleteOutcome =
 const MESSAGES: Record<CompleteFailure, string> = {
   offline: 'No hay conexión con el servidor. Reintentá cuando vuelva.',
   not_assigned: 'Esta visita ya no está asignada a vos. Actualizá la agenda.',
+  not_found: 'La visita no existe o fue eliminada.',
   not_in_progress: 'La visita no se encuentra en curso para ser finalizada.',
   server: 'El servidor no pudo registrar la finalización. Reintentá en un momento.',
 };
@@ -43,8 +44,11 @@ export async function completeVisit(db: SQLiteDatabase, visitId: string): Promis
         }
         return failed('not_in_progress');
       }
-      if (error.status === 403 || error.status === 404) {
+      if (error.status === 403) {
         return failed('not_assigned');
+      }
+      if (error.status === 404) {
+        return failed('not_found');
       }
       return failed('server');
     }

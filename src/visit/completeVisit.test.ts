@@ -62,7 +62,7 @@ describe('completeVisit', () => {
     }
   });
 
-  it('si la visita ya no está asignada (403/404), devuelve failed not_assigned', async () => {
+  it('si la visita ya no está asignada (403), devuelve failed not_assigned', async () => {
     post.mockRejectedValue(new ApiError('No asignada', 403, 'visit_not_assigned'));
 
     const outcome = await completeVisit(db, 'v-1');
@@ -71,6 +71,20 @@ describe('completeVisit', () => {
     expect(outcome.kind).toBe('failed');
     if (outcome.kind === 'failed') {
       expect(outcome.reason).toBe('not_assigned');
+      expect(outcome.message).toBe('Esta visita ya no está asignada a vos. Actualizá la agenda.');
+    }
+  });
+
+  it('si la visita no existe o fue eliminada (404), devuelve failed not_found', async () => {
+    post.mockRejectedValue(new ApiError('No encontrada', 404, 'visit_not_found'));
+
+    const outcome = await completeVisit(db, 'v-1');
+
+    expect(mark).not.toHaveBeenCalled();
+    expect(outcome.kind).toBe('failed');
+    if (outcome.kind === 'failed') {
+      expect(outcome.reason).toBe('not_found');
+      expect(outcome.message).toBe('La visita no existe o fue eliminada.');
     }
   });
 

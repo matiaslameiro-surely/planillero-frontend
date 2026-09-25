@@ -30,6 +30,8 @@ export default function Login() {
   const [step, setStep] = useState<Step>('credentials');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  // Arranca oculta: mostrarla es una decisión de quien escribe, no el estado por defecto.
+  const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -118,18 +120,37 @@ export default function Login() {
               />
 
               <Text style={[styles.label, { color: colors.textSecondary }]}>Contraseña</Text>
-              <TextInput
-                style={inputStyle}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                textContentType="password"
-                placeholderTextColor={colors.textMuted}
-                editable={!submitting}
-                onSubmitEditing={() => void submitCredentials()}
-                accessibilityLabel="Contraseña"
-              />
+              {/* El borde es del contenedor, así el botón queda dentro del campo, a la derecha
+                  (PLAN-56): con teclado táctil, ver lo escrito evita descubrir el error recién al
+                  fallar el login. */}
+              <View
+                style={[
+                  styles.passwordField,
+                  { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault },
+                ]}>
+                <TextInput
+                  style={[styles.input, styles.passwordInput, { color: colors.textPrimary }]}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="password"
+                  placeholderTextColor={colors.textMuted}
+                  editable={!submitting}
+                  onSubmitEditing={() => void submitCredentials()}
+                  accessibilityLabel="Contraseña"
+                />
+                <Pressable
+                  style={styles.toggle}
+                  onPress={() => setShowPassword((visible) => !visible)}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+                  <Text style={[styles.toggleText, { color: colors.primary }]}>
+                    {showPassword ? 'Ocultar' : 'Mostrar'}
+                  </Text>
+                </Pressable>
+              </View>
             </>
           ) : (
             <>
@@ -209,6 +230,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     minHeight: MIN_TOUCH_TARGET,
   },
+  passwordField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+  },
+  // El borde lo pone el contenedor; el campo ocupa lo que deja el botón.
+  passwordInput: { flex: 1, borderWidth: 0 },
+  toggle: {
+    minWidth: MIN_TOUCH_TARGET,
+    minHeight: MIN_TOUCH_TARGET,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toggleText: { fontSize: 14, fontWeight: '600' },
   error: { fontSize: 14, marginTop: 4, fontWeight: '600' },
   button: {
     marginTop: 16,
