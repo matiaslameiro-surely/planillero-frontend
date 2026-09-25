@@ -10,8 +10,8 @@ import { ensureAgendaSchema } from '@/db/agendaSchema';
  * arma, pero no que SQLite lo acepte. Acá el mismo `ensureAgendaSchema` corre sobre una base en
  * memoria de `node:sqlite`, con los estados que dejaron las versiones publicadas en los dispositivos.
  *
- * `node:sqlite` viene con Node desde la 22.13, que es el mínimo que declara `engines` en
- * `package.json`. Con un Node anterior la suite falla con un mensaje que lo dice: saltearla dejaría
+ * `node:sqlite` viene con Node desde la 22.13, y todo el rango de `engines` en `package.json` lo
+ * incluye. Con un Node sin ese módulo la suite falla con un mensaje que lo dice: saltearla dejaría
  * sin probar contra SQLite real justo el caso que originó el bug, sin que nadie se entere.
  */
 
@@ -23,7 +23,7 @@ function loadNodeSqlite(): NodeSqlite {
     return require('node:sqlite') as NodeSqlite;
   } catch (error) {
     throw new Error(
-      `Estos tests necesitan node:sqlite (Node 22.13 o superior) y se están corriendo con Node ${process.versions.node}.`,
+      `Estos tests necesitan node:sqlite, que no está en Node ${process.versions.node}. Usá un Node del rango de engines en package.json.`,
       { cause: error },
     );
   }
