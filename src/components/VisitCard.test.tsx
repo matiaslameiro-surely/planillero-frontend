@@ -104,4 +104,121 @@ describe('VisitCard', () => {
     expect(json).toContain('En curso');
     expect(json).not.toContain('Latitud');
   });
+
+  describe('acciones en visita IN_PROGRESS', () => {
+    const inProgressVisit: AgendaVisit = {
+      ...assigned,
+      status: 'IN_PROGRESS',
+    };
+
+    it('muestra botones de evidencias, formulario y finalizar visita con área táctil >= 48 dp', () => {
+      const onOpenEvidence = jest.fn();
+      const onOpenForm = jest.fn();
+      const onComplete = jest.fn();
+
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(
+          <VisitCard
+            visit={inProgressVisit}
+            online={true}
+            starting={false}
+            onStart={jest.fn()}
+            onOpenEvidence={onOpenEvidence}
+            onOpenForm={onOpenForm}
+            onComplete={onComplete}
+          />,
+        );
+      });
+
+      const evBtn = renderer.root.findByProps({ accessibilityLabel: `Evidencias y firma de ${inProgressVisit.code}` });
+      const formBtn = renderer.root.findByProps({ accessibilityLabel: `Completar formulario de ${inProgressVisit.code}` });
+      const completeBtn = renderer.root.findByProps({ accessibilityLabel: `Finalizar visita ${inProgressVisit.code}` });
+
+      const buttons = [evBtn, formBtn, completeBtn];
+      expect(buttons).toHaveLength(3);
+
+      // Verificar que todos tengan rol button y cumplan el área táctil mínima de 48 dp
+      buttons.forEach((b) => {
+        expect(b.props.accessibilityRole).toBe('button');
+        const style = StyleSheet.flatten(
+          typeof b.props.style === 'function' ? b.props.style({ pressed: false }) : b.props.style,
+        );
+        expect(style.minHeight).toBeGreaterThanOrEqual(48);
+      });
+
+      // Simular toques
+      act(() => evBtn.props.onPress());
+      expect(onOpenEvidence).toHaveBeenCalledWith(inProgressVisit);
+
+      act(() => formBtn.props.onPress());
+      expect(onOpenForm).toHaveBeenCalledWith(inProgressVisit);
+
+      act(() => completeBtn.props.onPress());
+      expect(onComplete).toHaveBeenCalledWith(inProgressVisit);
+    });
+
+    it('sin conexión, el botón de finalizar queda deshabilitado y muestra advertencia', () => {
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(
+          <VisitCard
+            visit={inProgressVisit}
+            online={false}
+            starting={false}
+            onStart={jest.fn()}
+            onComplete={jest.fn()}
+          />,
+        );
+      });
+
+      const completeBtn = renderer.root.findByProps({
+        accessibilityLabel: `Finalizar visita ${inProgressVisit.code}`,
+      });
+      expect(completeBtn.props.disabled).toBe(true);
+      expect(JSON.stringify(renderer.toJSON())).toContain('Finalizar la visita requiere conexión');
+    });
+
+    it('mientras se completa, el botón de finalizar queda deshabilitado', () => {
+      let renderer!: ReturnType<typeof create>;
+      act(() => {
+        renderer = create(
+          <VisitCard
+            visit={inProgressVisit}
+            online={true}
+            starting={false}
+            completing={true}
+            onStart={jest.fn()}
+            onComplete={jest.fn()}
+          />,
+        );
+      });
+
+      const completeBtn = renderer.root.findByProps({
+        accessibilityLabel: `Finalizar visita ${inProgressVisit.code}`,
+      });
+      expect(completeBtn.props.disabled).toBe(true);
+    });
+  });
+
+  it('una visita COMPLETED muestra el estado Completada y no ofrece botones de inicio ni finalización', () => {
+    let renderer!: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(
+        <VisitCard
+          visit={{ ...assigned, status: 'COMPLETED' }}
+          online={true}
+          starting={false}
+          onStart={jest.fn()}
+          onComplete={jest.fn()}
+        />,
+      );
+    });
+
+    const json = JSON.stringify(renderer.toJSON());
+    expect(json).toContain('Completada');
+
+    const buttons = renderer.root.findAll((node) => node.props.accessibilityRole === 'button');
+    expect(buttons).toHaveLength(0);
+  });
 });

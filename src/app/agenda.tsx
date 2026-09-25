@@ -1,6 +1,15 @@
 import { Redirect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { localDateString } from '@/agenda/date';
 import { useAgenda } from '@/agenda/useAgenda';
@@ -14,6 +23,7 @@ import { useDeviceStatus } from '@/status/useDeviceStatus';
 import { confirmSignOut } from '@/sync/signOutGuard';
 import { useSyncQueue } from '@/sync/useSyncQueue';
 import { startVisit } from '@/visit/startVisit';
+import { completeVisit } from '@/visit/completeVisit';
 import { MIN_TOUCH_TARGET, useThemeColors } from '@/constants/layout';
 
 /**
@@ -50,6 +60,7 @@ function Agenda() {
   const queue = useSyncQueue(device.online);
 
   const [startingId, setStartingId] = useState<string | null>(null);
+  const [completingId, setCompletingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const onBack = useCallback(() => {
@@ -90,15 +101,55 @@ function Agenda() {
     [agenda, database, startingId],
   );
 
+  const onOpenEvidence = useCallback((visit: AgendaVisit) => {
+    router.push(`/evidence/${visit.visitId}`);
+  }, [router]);
+
   const onOpenForm = useCallback(
     (visit: AgendaVisit) => {
       agenda.openFormulario(
         visit.visitId,
-        visit.formTemplateId,
-        visit.formTemplateVersion,
+        visit.formTemplateId || 'control-de-acceso',
+        visit.formTemplateVersion ?? 1,
       );
     },
     [agenda],
+  );
+
+  const onComplete = useCallback(
+    (visit: AgendaVisit) => {
+      if (database.status !== 'ready' || completingId) {
+        return;
+      }
+      Alert.alert(
+        'Finalizar visita',
+        `¿Confirmás que deseás finalizar la visita ${visit.code}?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Finalizar',
+            style: 'destructive',
+            onPress: async () => {
+              setCompletingId(visit.visitId);
+              setNotice(null);
+              try {
+                const outcome = await completeVisit(database.db, visit.visitId);
+                if (outcome.kind === 'failed') {
+                  setNotice(outcome.message);
+                } else if (outcome.kind === 'alreadyCompleted') {
+                  setNotice('Esa visita ya estaba finalizada. Se actualizó la agenda.');
+                  await agenda.refresh();
+                }
+                await agenda.reload();
+              } finally {
+                setCompletingId(null);
+              }
+            },
+          },
+        ],
+      );
+    },
+    [agenda, completingId, database],
   );
 
   return (
@@ -182,8 +233,11 @@ function Agenda() {
               visit={item}
               online={device.online}
               starting={startingId === item.visitId}
+              completing={completingId === item.visitId}
               onStart={onStart}
               onOpenForm={onOpenForm}
+              onOpenEvidence={onOpenEvidence}
+              onComplete={onComplete}
             />
           )}
           ListEmptyComponent={<Text style={[styles.empty, { color: colors.textMuted }]}>No hay visitas para hoy.</Text>}
