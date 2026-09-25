@@ -120,12 +120,13 @@ describe('agendaSchema', () => {
   });
 
   it('consulta las columnas existentes de agenda_visits antes de agregar las de formulario', async () => {
-    const { db, getAllAsyncMock } = fakeDatabase(3);
+    const { db, execAsyncMock, getAllAsyncMock } = fakeDatabase(3);
 
     await ensureAgendaSchema(db);
 
     expect(getAllAsyncMock).toHaveBeenCalledTimes(1);
     expect(getAllAsyncMock).toHaveBeenCalledWith('PRAGMA table_info(agenda_visits)');
+    expect(getAllAsyncMock.mock.invocationCallOrder[0]).toBeLessThan(execAsyncMock.mock.invocationCallOrder[0]);
   });
 
   it.each([1, 2, 3])(

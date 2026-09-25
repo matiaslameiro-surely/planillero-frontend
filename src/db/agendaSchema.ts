@@ -110,8 +110,8 @@ export async function ensureAgendaSchema(db: SQLiteDatabase): Promise<void> {
   }
 
   if (version < 4) {
-    // Columnas de formulario para el renderizador dinámico (PLAN-13) — dispositivos que ya
-    // migraron a v2 (auditoría) o v3 (cola sync) no recibieron estas columnas.
+    // Columnas de formulario para el renderizador dinámico (PLAN-13), que la tabla del paso 1 no
+    // tiene.
     //
     // Sólo se agregan las que faltan: el paso 2 publicado antes de PLAN-47 ya las agregaba, así que
     // hay dispositivos en v2 o v3 que las tienen y un `ADD COLUMN` fijo los traba con
