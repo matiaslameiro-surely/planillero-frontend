@@ -2,6 +2,7 @@ import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from
 import { act, create } from 'react-test-renderer';
 
 import Login from '@/app/login';
+import { MIN_TOUCH_TARGET } from '@/constants/layout';
 
 // El prefijo `mock` es lo que permite que el factory de `jest.mock` los referencie: el plugin de
 // hoisting de Babel sólo deja pasar variables fuera de scope que lo llevan.
@@ -112,5 +113,72 @@ describe('Login: teclado (PLAN-55)', () => {
     expect(
       renderer.root.findByProps({ accessibilityLabel: 'Código de verificación de 6 dígitos' }),
     ).toBeTruthy();
+  });
+});
+
+describe('Login: mostrar u ocultar la contraseña (PLAN-56)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  function passwordInput(renderer: ReturnType<typeof create>) {
+    return renderer.root.findByProps({ accessibilityLabel: 'Contraseña' });
+  }
+
+  function toggle(renderer: ReturnType<typeof create>, label: string) {
+    return renderer.root.findByProps({ accessibilityLabel: label });
+  }
+
+  it('arranca oculta, con un botón «Mostrar» accesible', () => {
+    const renderer = renderLogin();
+
+    expect(passwordInput(renderer).props.secureTextEntry).toBe(true);
+    const button = toggle(renderer, 'Mostrar contraseña');
+    expect(button.props.accessibilityRole).toBe('button');
+    expect(JSON.stringify(renderer.toJSON())).toContain('Mostrar');
+  });
+
+  it('alterna entre mostrar y ocultar sin borrar lo escrito', () => {
+    const renderer = renderLogin();
+    act(() => {
+      passwordInput(renderer).props.onChangeText('Clave-Ficticia-1');
+    });
+
+    act(() => {
+      toggle(renderer, 'Mostrar contraseña').props.onPress();
+    });
+    expect(passwordInput(renderer).props.secureTextEntry).toBe(false);
+    expect(passwordInput(renderer).props.value).toBe('Clave-Ficticia-1');
+    expect(toggle(renderer, 'Ocultar contraseña').props.accessibilityRole).toBe('button');
+
+    act(() => {
+      toggle(renderer, 'Ocultar contraseña').props.onPress();
+    });
+    expect(passwordInput(renderer).props.secureTextEntry).toBe(true);
+    expect(passwordInput(renderer).props.value).toBe('Clave-Ficticia-1');
+  });
+
+  it('el botón tiene el área táctil mínima', () => {
+    const renderer = renderLogin();
+    const style = StyleSheet.flatten(toggle(renderer, 'Mostrar contraseña').props.style);
+
+    expect(style.minWidth).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET);
+    expect(style.minHeight).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET);
+  });
+
+  it('con la contraseña visible, «Entrar» manda lo escrito como siempre', async () => {
+    mockSignIn.mockResolvedValueOnce({ twoFactorRequired: false });
+    const renderer = renderLogin();
+    act(() => {
+      renderer.root.findByProps({ accessibilityLabel: 'Usuario' }).props.onChangeText('operador.demo');
+      passwordInput(renderer).props.onChangeText('Clave-Ficticia-1');
+    });
+    act(() => {
+      toggle(renderer, 'Mostrar contraseña').props.onPress();
+    });
+
+    await press(renderer, 'Entrar a Planillero');
+
+    expect(mockSignIn).toHaveBeenCalledWith('operador.demo', 'Clave-Ficticia-1');
   });
 });
