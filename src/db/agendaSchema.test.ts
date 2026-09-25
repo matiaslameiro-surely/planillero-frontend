@@ -28,7 +28,13 @@ const BASE_COLUMNS = [
   'started_at_server',
 ];
 
-const FORM_COLUMNS = ['form_template_id', 'form_template_version', 'form_submitted_at'];
+const FORM_COLUMN_TYPES: Record<string, string> = {
+  form_template_id: 'TEXT',
+  form_template_version: 'INTEGER',
+  form_submitted_at: 'TEXT',
+};
+
+const FORM_COLUMNS = Object.keys(FORM_COLUMN_TYPES);
 
 function fakeDatabase(userVersion: number, existingColumns: string[] = BASE_COLUMNS) {
   const executedStatements: string[] = [];
@@ -122,30 +128,55 @@ describe('agendaSchema', () => {
     expect(getAllAsyncMock).toHaveBeenCalledWith('PRAGMA table_info(agenda_visits)');
   });
 
-  it.each([2, 3])(
+  it.each([1, 2, 3])(
     'desde la versión %i no agrega columnas si agenda_visits ya tiene las tres, pero llega a la versión 4',
     async (userVersion) => {
-      const { db, executedStatements } = fakeDatabase(userVersion, [...BASE_COLUMNS, ...FORM_COLUMNS]);
+      const { db, execAsyncMock, executedStatements } = fakeDatabase(userVersion, [
+        ...BASE_COLUMNS,
+        ...FORM_COLUMNS,
+      ]);
 
       await ensureAgendaSchema(db);
 
-      const lastStep = executedStatements[executedStatements.length - 1];
-      expect(lastStep).not.toContain('ALTER TABLE');
-      expect(lastStep).toContain('PRAGMA user_version = 4;');
+      expect(execAsyncMock).toHaveBeenCalledTimes(4 - userVersion);
+      expect(executedStatements.every((sql) => !sql.includes('ALTER TABLE'))).toBe(true);
+      expect(executedStatements[executedStatements.length - 1]).toContain('PRAGMA user_version = 4;');
     },
   );
 
-  it('agrega sólo las columnas de formulario que faltan', async () => {
-    const { db, execAsyncMock, executedStatements } = fakeDatabase(3, [...BASE_COLUMNS, 'form_template_id']);
+  const partialCases = [1, 2, 3].flatMap((userVersion) =>
+    [
+      ['form_template_id'],
+      ['form_template_version'],
+      ['form_submitted_at'],
+      ['form_template_id', 'form_template_version'],
+      ['form_template_id', 'form_submitted_at'],
+      ['form_template_version', 'form_submitted_at'],
+    ].map((present) => ({ userVersion, present })),
+  );
 
-    await ensureAgendaSchema(db);
+  it.each(partialCases)(
+    'desde la versión $userVersion con $present agrega sólo las columnas de formulario que faltan',
+    async ({ userVersion, present }) => {
+      const { db, execAsyncMock, executedStatements } = fakeDatabase(userVersion, [...BASE_COLUMNS, ...present]);
 
-    expect(execAsyncMock).toHaveBeenCalledTimes(1);
-    expect(executedStatements[0]).not.toContain('ADD COLUMN form_template_id');
-    expect(executedStatements[0]).toContain('ALTER TABLE agenda_visits ADD COLUMN form_template_version INTEGER;');
-    expect(executedStatements[0]).toContain('ALTER TABLE agenda_visits ADD COLUMN form_submitted_at TEXT;');
-    expect(executedStatements[0]).toContain('PRAGMA user_version = 4;');
-  });
+      await ensureAgendaSchema(db);
+
+      expect(execAsyncMock).toHaveBeenCalledTimes(4 - userVersion);
+      const lastStep = executedStatements[executedStatements.length - 1];
+      for (const column of FORM_COLUMNS) {
+        const alterStatement = `ALTER TABLE agenda_visits ADD COLUMN ${column} ${FORM_COLUMN_TYPES[column]};`;
+        if (present.includes(column)) {
+          expect(lastStep).not.toContain(`ADD COLUMN ${column} `);
+        } else {
+          expect(lastStep).toContain(alterStatement);
+        }
+      }
+      expect(lastStep).toContain('PRAGMA user_version = 4;');
+      // Ningún paso anterior al 4 toca las columnas de agenda_visits.
+      expect(executedStatements.slice(0, -1).every((sql) => !sql.includes('ALTER TABLE'))).toBe(true);
+    },
+  );
 
   it('no ejecuta ninguna migración si la base ya está en la versión 4', async () => {
     const { db, execAsyncMock, getAllAsyncMock } = fakeDatabase(4);
