@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { localDateString } from '@/agenda/date';
 import { useAgenda } from '@/agenda/useAgenda';
@@ -153,7 +154,7 @@ function Agenda() {
   );
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.bgBackdrop }]}>
+    <SafeAreaView edges={['top']} style={[styles.screen, { backgroundColor: colors.bgBackdrop }]}>
       <DeviceStatusBar
         online={device.online}
         batteryLevel={device.batteryLevel}
@@ -249,7 +250,7 @@ function Agenda() {
           }
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
