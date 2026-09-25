@@ -100,3 +100,17 @@ export function submitForm(
     body: payload,
   });
 }
+
+export interface CompleteVisitResponse {
+  visitId: string;
+  status: VisitStatus;
+  code: string;
+  completedAt: string;
+}
+
+/** Finaliza una visita en curso. */
+export function completeVisit(visitId: string): Promise<CompleteVisitResponse> {
+  return requestWithAuth<CompleteVisitResponse>(`/api/v1/visits/${encodeURIComponent(visitId)}/complete`, {
+    method: 'POST',
+  });
+}

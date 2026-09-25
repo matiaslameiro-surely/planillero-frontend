@@ -41,31 +41,42 @@ interface VisitCardProps {
   online: boolean;
   /** Se está iniciando esta visita. */
   starting: boolean;
+  /** Se está finalizando esta visita. */
+  completing?: boolean;
   onStart: (visit: AgendaVisit) => void;
   /** Callback opcional para abrir formulario. */
   onOpenForm?: (visit: AgendaVisit) => void;
+  /** Callback opcional para abrir evidencias periciales (fotos y firma). */
+  onOpenEvidence?: (visit: AgendaVisit) => void;
+  /** Callback opcional para finalizar la visita. */
+  onComplete?: (visit: AgendaVisit) => void;
 }
 
 /**
  * Tarjeta de una visita de la hoja de ruta: código, dirección, urgencia y estado.
  *
  * - Botón "Iniciar visita" en visitas ASSIGNED (requiere online).
- * - Botón "Completar formulario" en visitas ASSIGNED/IN_PROGRESS con form_template_id.
+ * - Botones "Evidencias / Fotos y Firma", "Completar formulario" y "Finalizar visita" en visitas IN_PROGRESS.
  */
 export function VisitCard({
   visit,
   online,
   starting,
+  completing,
   onStart,
   onOpenForm,
+  onOpenEvidence,
+  onComplete,
 }: VisitCardProps) {
   const colors = useThemeColors();
   const canStart = visit.status === 'ASSIGNED';
+  const isInProgress = visit.status === 'IN_PROGRESS';
   const disabledStart = !online || starting;
+  const disabledComplete = !online || !!completing;
 
-  // Mostrar botón formulario si la visita tiene plantilla asignada o está en progreso
+  // Mostrar botón formulario si la visita tiene plantilla asignada o está en progreso (con fallback)
   const hasFormTemplate = !!visit.formTemplateId;
-  const canOpenForm = (visit.status === 'ASSIGNED' || visit.status === 'IN_PROGRESS') && hasFormTemplate;
+  const canOpenForm = (visit.status === 'ASSIGNED' && hasFormTemplate) || isInProgress;
 
   return (
     <View style={[styles.card, { backgroundColor: colors.bgSurface, borderColor: colors.borderDefault }]}>
@@ -115,10 +126,25 @@ export function VisitCard({
         </>
       ) : null}
 
+      {isInProgress && onOpenEvidence ? (
+        <Pressable
+          style={({ pressed }) => [
+            styles.buttonEvidence,
+            { backgroundColor: colors.primary },
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={() => onOpenEvidence(visit)}
+          accessibilityRole="button"
+          accessibilityLabel={`Evidencias y firma de ${visit.code}`}>
+          <Text style={styles.buttonText}>Evidencias / Fotos y Firma</Text>
+        </Pressable>
+      ) : null}
+
       {canOpenForm && onOpenForm ? (
         <Pressable
           style={({ pressed }) => [
             styles.buttonForm,
+            { backgroundColor: colors.success },
             pressed && styles.buttonFormPressed,
           ]}
           onPress={() => onOpenForm(visit)}
@@ -126,6 +152,34 @@ export function VisitCard({
           accessibilityLabel={`Completar formulario de ${visit.code}`}>
           <Text style={styles.buttonFormText}>Completar formulario</Text>
         </Pressable>
+      ) : null}
+
+      {isInProgress && onComplete ? (
+        <>
+          <Pressable
+            style={({ pressed }) => [
+              styles.buttonComplete,
+              { backgroundColor: colors.warning },
+              disabledComplete && { backgroundColor: colors.borderStrong },
+              pressed && !disabledComplete && styles.buttonPressed,
+            ]}
+            onPress={() => onComplete(visit)}
+            disabled={disabledComplete}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: disabledComplete }}
+            accessibilityLabel={`Finalizar visita ${visit.code}`}>
+            {completing ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Finalizar visita</Text>
+            )}
+          </Pressable>
+          {!online ? (
+            <Text style={[styles.hint, { color: colors.textMuted }]}>
+              Finalizar la visita requiere conexión con el servidor.
+            </Text>
+          ) : null}
+        </>
       ) : null}
     </View>
   );
@@ -151,7 +205,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#208AEF',
   },
   buttonDisabled: { backgroundColor: '#8888' },
   buttonPressed: { opacity: 0.85 },
@@ -165,8 +218,25 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#38a169',
   },
   buttonFormPressed: { opacity: 0.85 },
   buttonFormText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  buttonEvidence: {
+    minHeight: MIN_TOUCH_TARGET,
+    minWidth: MIN_TOUCH_TARGET,
+    marginTop: 6,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonComplete: {
+    minHeight: MIN_TOUCH_TARGET,
+    minWidth: MIN_TOUCH_TARGET,
+    marginTop: 6,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
