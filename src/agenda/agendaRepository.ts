@@ -201,3 +201,17 @@ export async function markStarted(db: SQLiteDatabase, response: StartVisitRespon
     ],
   );
 }
+
+/**
+ * Marca una visita como completada en SQLite.
+ *
+ * Se actualiza por `visit_id` en todas las fechas para mantener la unicidad del estado.
+ */
+export async function markCompleted(db: SQLiteDatabase, visitId: string): Promise<void> {
+  await db.runAsync(
+    `UPDATE agenda_visits
+        SET status = 'COMPLETED'
+      WHERE visit_id = ?`,
+    [visitId],
+  );
+}
