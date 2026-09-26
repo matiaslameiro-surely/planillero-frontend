@@ -4,6 +4,7 @@ import { act, create } from 'react-test-renderer';
 
 import Home from '@/app/index';
 import { VisitCard } from '@/components/VisitCard';
+import { contrastRatio } from '@/constants/contrast';
 import { LIGHT_THEME, DARK_THEME } from '@/constants/layout';
 import type { AgendaVisit } from '@/agenda/agendaRepository';
 
@@ -35,26 +36,6 @@ jest.mock('@/status/useDeviceStatus', () => ({
 jest.mock('@/sync/useSyncQueue', () => ({
   useSyncQueue: () => ({ reload: jest.fn().mockResolvedValue(0) }),
 }));
-
-/** Calcula la luminancia relativa según WCAG 2.1 */
-function relativeLuminance(hex: string): number {
-  const cleanHex = hex.replace('#', '');
-  const r = parseInt(cleanHex.substring(0, 2), 16) / 255;
-  const g = parseInt(cleanHex.substring(2, 4), 16) / 255;
-  const b = parseInt(cleanHex.substring(4, 6), 16) / 255;
-
-  const toLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
-  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-}
-
-/** Calcula el ratio de contraste entre dos colores hex */
-function contrastRatio(hex1: string, hex2: string): number {
-  const l1 = relativeLuminance(hex1);
-  const l2 = relativeLuminance(hex2);
-  const lighter = Math.max(l1, l2);
-  const darker = Math.min(l1, l2);
-  return (lighter + 0.05) / (darker + 0.05);
-}
 
 describe('Theme and Contrast Accessibility (PLAN-48)', () => {
   beforeEach(() => {
