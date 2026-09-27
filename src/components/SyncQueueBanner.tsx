@@ -71,6 +71,8 @@ const styles = StyleSheet.create({
   waiting: { backgroundColor: '#b9770e' },
   waitingText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   failedText: { color: '#fff', fontWeight: '600', fontSize: 13 },
-  done: { backgroundColor: '#1a9e5c' },
+  // Fijo en los dos temas: el banner lleva su propio fondo y el texto siempre es blanco. El verde es
+  // el `success` del tema claro (#15803d, 5.02:1 con blanco); el anterior, #1a9e5c, daba 3.45:1 (PLAN-67).
+  done: { backgroundColor: '#15803d' },
   doneText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });

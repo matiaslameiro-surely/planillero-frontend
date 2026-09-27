@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useThemeColors } from '@/constants/layout';
 import { accuracyLevel, type AccuracyLevel } from '@/visit/accuracy';
 
 interface LocationSummaryProps {
@@ -30,19 +31,25 @@ function formatTime(iso: string): string {
  * precisión con su semáforo y hora de inicio.
  *
  * Son sólo `Text`, nunca un campo de entrada: lo que se muestra es lo que el servidor guardó.
+ * Los textos y el borde toman su color del tema para asegurar contraste y legibilidad (PLAN-67).
  */
 export function LocationSummary({ latitude, longitude, accuracyMeters, startedAt }: LocationSummaryProps) {
   const level = ACCURACY_STYLE[accuracyLevel(accuracyMeters)];
+  const colors = useThemeColors();
+  const textStyle = [styles.row, { color: colors.textSecondary }];
 
   return (
-    <View style={styles.box} accessibilityLabel="Ubicación registrada al iniciar la visita">
-      <Text style={styles.row}>{`Latitud: ${latitude.toFixed(6)}`}</Text>
-      <Text style={styles.row}>{`Longitud: ${longitude.toFixed(6)}`}</Text>
+    <View
+      style={[styles.box, { borderColor: colors.borderDefault }]}
+      accessibilityLabel="Ubicación registrada al iniciar la visita"
+    >
+      <Text style={textStyle}>{`Latitud: ${latitude.toFixed(6)}`}</Text>
+      <Text style={textStyle}>{`Longitud: ${longitude.toFixed(6)}`}</Text>
       <View style={styles.accuracyRow}>
         <View style={[styles.dot, { backgroundColor: level.color }]} />
-        <Text style={styles.row}>{`Precisión: ${Math.round(accuracyMeters)} m · ${level.label}`}</Text>
+        <Text style={textStyle}>{`Precisión: ${Math.round(accuracyMeters)} m · ${level.label}`}</Text>
       </View>
-      <Text style={styles.row}>{`Inicio: ${formatTime(startedAt)}`}</Text>
+      <Text style={textStyle}>{`Inicio: ${formatTime(startedAt)}`}</Text>
     </View>
   );
 }
@@ -53,7 +60,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#8888',
   },
   row: { fontSize: 15 },
   accuracyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
