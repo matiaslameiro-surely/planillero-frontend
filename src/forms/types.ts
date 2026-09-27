@@ -1,5 +1,6 @@
 /** JSON Schema (Draft 2020-12): solo las keywords simples que usa el contrato. */
 export type JsonSchema = {
+  $schema?: string;
   type?: string | string[];
   title?: string;
   description?: string;
@@ -14,7 +15,8 @@ export type JsonSchema = {
   maxLength?: number;
   pattern?: string;
   format?: string;
-  items?: JsonSchema | JsonSchema[];
+  /** En 2020-12 `items` es un único schema: la forma de tupla pasó a `prefixItems` y AJV la rechaza. */
+  items?: JsonSchema;
   minItems?: number;
   maxItems?: number;
   uniqueItems?: boolean;
