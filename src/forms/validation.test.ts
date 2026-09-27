@@ -15,6 +15,7 @@ const schema = {
     workedHours: { title: 'Horas trabajadas', type: 'number', minimum: 0, maximum: 24 },
     taskType: { title: 'Tipo de tarea', type: 'string', enum: ['PREVENTIVO', 'CORRECTIVO', 'INSPECCION'] },
     serialNumber: { title: 'Número de serie', type: 'string', pattern: '^[A-Z]{3}-[0-9]{4}$' },
+    serviceDate: { title: 'Fecha del servicio', type: 'string', format: 'date' },
   },
 } as JsonSchema;
 
@@ -51,5 +52,12 @@ describe('validación de formularios con Draft 2020-12 (PLAN-75)', () => {
     expect(validateField(schema, 'serialNumber', 'ABC-1234')).toBeUndefined();
     expect(validateField(schema, 'serialNumber', 'abc')).toBe('El campo "serialNumber" no tiene el formato esperado.');
     expect(validateField(schema, 'taskType', undefined)).toBe('El campo "taskType" es obligatorio.');
+  });
+
+  it('aplica los formatos de ajv-formats sobre la instancia 2020-12', () => {
+    expect(validateField(schema, 'serviceDate', '2026-09-27')).toBeUndefined();
+    expect(validateField(schema, 'serviceDate', '27/09/2026')).toBe(
+      'El campo "serviceDate" no tiene un formato válido (date).',
+    );
   });
 });
