@@ -17,7 +17,10 @@ export function FieldMultiSelect({ name, schema, value, onChange, onBlur, error,
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, required && styles.required]}>{label}{required ? ' *' : ''}</Text>
+      <Text style={styles.label}>
+        {label}
+        {required && <Text style={styles.requiredAsterisk}> *</Text>}
+      </Text>
       {description && <Text style={styles.description}>{description}</Text>}
       <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.chipsContainer}>
         {enumValues.map((v) => {
@@ -51,7 +54,7 @@ export function FieldMultiSelect({ name, schema, value, onChange, onBlur, error,
 const styles = StyleSheet.create({
   container: { marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: '#0f172a' },
-  required: { color: '#b91c1c' },
+  requiredAsterisk: { color: '#b91c1c' },
   description: { fontSize: 12, color: '#475569', marginBottom: 8 },
   chipsContainer: { gap: 8, paddingVertical: 4 },
   chip: {

@@ -9,7 +9,10 @@ export function FieldText({ name, schema, value, onChange, onBlur, error, touche
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, required && styles.required]}>{label}{required ? ' *' : ''}</Text>
+      <Text style={styles.label}>
+        {label}
+        {required && <Text style={styles.requiredAsterisk}> *</Text>}
+      </Text>
       <TextInput
         style={styles.input}
         value={value as string ?? ''}
@@ -30,7 +33,7 @@ export function FieldText({ name, schema, value, onChange, onBlur, error, touche
 const styles = StyleSheet.create({
   container: { marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: '#0f172a' },
-  required: { color: '#b91c1c' },
+  requiredAsterisk: { color: '#b91c1c' },
   input: {
     borderWidth: 1,
     borderColor: '#94a3b8',
