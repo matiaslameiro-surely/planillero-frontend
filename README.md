@@ -89,6 +89,21 @@ El backend corre local (`cd ../backend && ./mvnw spring-boot:run`).
 4. Cerrar sesión → vuelve al login.
 5. Ingresar `supervisor.demo / Supervisor123!` tras haber habilitado 2FA → pide código TOTP → tras código correcto, entra a home.
 
+## Pruebas en navegador web
+
+Para inspeccionar visualmente pantallas y componentes sin necesidad de un emulador de Android ni dispositivo físico:
+
+```bash
+npm run web
+```
+
+Esto inicia Metro Bundler para web y abre la aplicación en el navegador.
+
+### Particularidades y limitaciones del entorno web
+
+- **Persistencia local (SQLite / `expo-sqlite`):** En web, `expo-sqlite` opera mediante WebAssembly y un Web Worker (`wa-sqlite`). `metro.config.js` resuelve la extensión `.wasm` como asset y aplica encabezados COOP/COEP (`same-origin` / `credentialless`) en el middleware para habilitar `SharedArrayBuffer`. La base cifrada mediante SQLCipher respaldada por hardware es exclusiva de plataformas nativas Android/iOS; en web los datos se almacenan en el navegador.
+- **Almacenamiento seguro (`expo-secure-store`):** En entornos web sin almacenamiento seguro nativo, `tokenStore.ts` utiliza un fallback en memoria. Por este motivo, al recargar la pestaña del navegador la sesión vuelve al estado inicial (Login).
+
 ## Generar el APK con Docker
 
 Para probar en una tablet Android sin instalar Android Studio ni el SDK, el APK se compila dentro de
