@@ -7,7 +7,10 @@ export function FieldBoolean({ name, schema, value, onChange, onBlur, error, tou
     <View style={styles.container}>
       <View style={styles.row}>
         <View style={styles.labelWrapper}>
-          <Text style={[styles.label, required && styles.required]}>{label}{required ? ' *' : ''}</Text>
+          <Text style={styles.label}>
+            {label}
+            {required && <Text style={styles.requiredAsterisk}> *</Text>}
+          </Text>
           {description && <Text style={styles.description}>{description}</Text>}
         </View>
         <Switch
@@ -36,7 +39,7 @@ const styles = StyleSheet.create({
   },
   labelWrapper: { flex: 1, paddingRight: 12 },
   label: { fontSize: 14, fontWeight: '600', color: '#0f172a' },
-  required: { color: '#b91c1c' },
+  requiredAsterisk: { color: '#b91c1c' },
   description: { fontSize: 12, color: '#475569', marginTop: 2 },
   error: { marginTop: 4, fontSize: 12, color: '#b91c1c', fontWeight: '600' },
 });
