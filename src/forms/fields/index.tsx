@@ -17,7 +17,7 @@ function isSchemaWithEnum(schema: JsonSchema | undefined): schema is JsonSchema 
 
 function isStringArraySchema(schema: JsonSchema | undefined): schema is JsonSchema & { items: JsonSchema & { enum: readonly string[] } } {
   return !!schema && schema.type === 'array' && 
-    !!schema.items && !Array.isArray(schema.items) && 
+    !!schema.items &&
     schema.items.type === 'string' && Array.isArray(schema.items.enum) && schema.items.enum.length > 0;
 }
 
