@@ -8,7 +8,7 @@ import {
   GestureResponderEvent,
   PanResponderGestureState,
 } from 'react-native';
-import { computeSha256 } from '@/api/evidence';
+import { prepareSvgEvidence, type SvgEvidence } from '@/api/evidence';
 import { MIN_TOUCH_TARGET } from '@/constants/layout';
 
 interface Point {
@@ -17,11 +17,8 @@ interface Point {
 }
 
 interface SignaturePadProps {
-  onSave: (signatureData: {
-    dataUri: string;
-    sha256: string;
-    pointsCount: number;
-  }) => void;
+  /** Recibe el SVG de la firma con su hash de captura, listo para subir tal cual. */
+  onSave: (signature: SvgEvidence & { pointsCount: number }) => void;
   onCancel?: () => void;
 }
 
@@ -48,10 +45,13 @@ export function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
       onPanResponderMove: (evt: GestureResponderEvent, _gestureState: PanResponderGestureState) => {
         const { locationX, locationY } = evt.nativeEvent;
         currentPathRef.current.push({ x: locationX, y: locationY });
+        // Copia tomada ahora y no dentro del updater: React puede correrlo después del release, que
+        // vacía `currentPathRef`, y el trazo se perdería (PLAN-78).
+        const stroke = [...currentPathRef.current];
         setPaths((prev) => {
-          if (prev.length === 0) return [[{ x: locationX, y: locationY }]];
+          if (prev.length === 0) return [stroke];
           const next = [...prev];
-          next[next.length - 1] = [...currentPathRef.current];
+          next[next.length - 1] = stroke;
           return next;
         });
       },
@@ -82,14 +82,10 @@ export function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
       .join('');
 
     const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" width="400" height="200" style="background:#ffffff">${svgPathStrings}</svg>`;
-    const dataUri = `data:image/svg+xml;utf8,${encodeURIComponent(svgContent)}`;
-    const sha256 = await computeSha256(svgContent);
+    // Se hashea y se sube el mismo markup: antes se hasheaba el SVG y se subía su data URI (PLAN-78).
+    const evidence = await prepareSvgEvidence(svgContent);
 
-    onSave({
-      dataUri,
-      sha256,
-      pointsCount: totalPoints,
-    });
+    onSave({ ...evidence, pointsCount: totalPoints });
   };
 
   const hasStrokes = paths.length > 0;

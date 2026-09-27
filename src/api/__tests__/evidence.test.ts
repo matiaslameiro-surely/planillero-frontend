@@ -1,6 +1,10 @@
+import { createHash } from 'node:crypto';
+
 import * as tokenStore from '@/auth/tokenStore';
 import {
   computeSha256,
+  prepareSvgEvidence,
+  uploadSvgEvidence,
   uploadEvidence,
   listEvidences,
   createManifest,
@@ -118,5 +122,54 @@ describe('API de Evidencias periciales', () => {
 
     const res = await verifyManifest('v-1');
     expect(res.status).toBe('VERIFIED');
+  });
+});
+
+/** SHA-256 calculado por fuera del código bajo prueba, como lo hace el servidor sobre los bytes. */
+function serverSha256(bytes: Uint8Array): string {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+/** Bytes exactos de la parte `file` del multipart que se mandó al backend. */
+async function uploadedFile(mockFetch: jest.Mock): Promise<{ file: File; bytes: Uint8Array; declared: string }> {
+  const [, init] = mockFetch.mock.calls[0];
+  const file = (init.body as FormData).get('file') as File;
+  return {
+    file,
+    bytes: new Uint8Array(await file.arrayBuffer()),
+    declared: init.headers['X-Content-SHA256'],
+  };
+}
+
+describe('evidencias SVG: el hash declarado es el de los bytes subidos (PLAN-78)', () => {
+  const photoSvg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="#3b82f6"/><text x="10" y="50" fill="white">Foto 1</text></svg>';
+
+  it('prepareSvgEvidence hashea los bytes UTF-8 del markup, también con caracteres no ASCII', async () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>Inspección nº 1 · ✓</text></svg>';
+    const evidence = await prepareSvgEvidence(svg);
+    const bytes = Buffer.from(svg, 'utf8');
+
+    expect(evidence.content).toBe(svg);
+    expect(evidence.sha256).toBe(serverSha256(bytes));
+    expect(evidence.size).toBe(bytes.length);
+  });
+
+  it.each([
+    ['foto', 'PHOTO', 'evidencia-pericial-1.svg'],
+    ['firma', 'SIGNATURE', 'firma-olografa.svg'],
+  ] as const)('una %s sube un SVG cuyo SHA-256 es el declarado', async (_name, type, fileName) => {
+    const mockFetch = jest.fn().mockResolvedValue(jsonResponse(201, { id: 'ev-1' }));
+    useFetch(mockFetch);
+    const evidence = await prepareSvgEvidence(photoSvg);
+
+    await uploadSvgEvidence('v-1', evidence, type, { fileName });
+
+    const { file, bytes, declared } = await uploadedFile(mockFetch);
+    expect(declared).toBe(serverSha256(bytes));
+    expect(declared).toBe(evidence.sha256);
+    expect(new TextDecoder().decode(bytes).startsWith('<svg')).toBe(true);
+    expect(file.type).toBe('image/svg+xml');
+    expect(file.name).toBe(fileName);
   });
 });

@@ -128,6 +128,47 @@ function rotr(x: number, n: number): number {
 }
 
 /**
+ * Evidencia en formato SVG lista para subir: el contenido y su hash de captura viajan juntos.
+ *
+ * El servidor hashea los bytes que recibe y los compara con `X-Content-SHA256`, así que lo que se sube
+ * tiene que ser exactamente lo que se hasheó (PLAN-78). Por eso la subida toma `content` de este mismo
+ * objeto y nunca un segundo string (como un data URI) que pueda divergir.
+ */
+export interface SvgEvidence {
+  /** Markup del SVG. Es lo que se hashea y lo que se sube. */
+  content: string;
+  /** SHA-256 en hexadecimal de `content` codificado en UTF-8, calculado al capturar. */
+  sha256: string;
+  /** Tamaño en bytes de `content` en UTF-8. */
+  size: number;
+}
+
+export const SVG_CONTENT_TYPE = 'image/svg+xml';
+
+/** Prepara una evidencia SVG: calcula su hash de captura sobre los bytes UTF-8 del markup. */
+export async function prepareSvgEvidence(svg: string): Promise<SvgEvidence> {
+  const bytes = new TextEncoder().encode(svg);
+  return { content: svg, sha256: await computeSha256(bytes), size: bytes.length };
+}
+
+/**
+ * Sube una evidencia SVG declarando su hash de captura.
+ *
+ * El `Blob` se arma desde el string y no desde bytes: el `Blob` de React Native no se puede construir
+ * desde un `ArrayBuffer` ni expone `arrayBuffer()`. El `fetch` de Expo lo serializa en UTF-8, igual que
+ * `TextEncoder` en `prepareSvgEvidence`.
+ */
+export async function uploadSvgEvidence(
+  visitId: string,
+  evidence: SvgEvidence,
+  type: EvidenceType,
+  options: { fileName: string; capturedAt?: string; metadata?: string },
+): Promise<EvidenceResponse> {
+  const blob = new Blob([evidence.content], { type: SVG_CONTENT_TYPE });
+  return uploadEvidence(visitId, blob, type, { ...options, clientSha256: evidence.sha256 });
+}
+
+/**
  * Sube una evidencia pericial multipart (foto o firma) con verificación previa de SHA-256.
  */
 export async function uploadEvidence(
@@ -138,11 +179,17 @@ export async function uploadEvidence(
     capturedAt?: string;
     clientSha256?: string;
     metadata?: string;
+    /** Nombre del archivo en la parte `file`; el backend toma de ahí la extensión. */
+    fileName?: string;
   } = {},
 ): Promise<EvidenceResponse> {
   const formData = new FormData();
   // En React Native `file` puede ser { uri, name, type }
-  formData.append('file', file as unknown as Blob);
+  if (options.fileName && file instanceof Blob) {
+    formData.append('file', file, options.fileName);
+  } else {
+    formData.append('file', file as unknown as Blob);
+  }
   formData.append('type', type);
   if (options.capturedAt) {
     formData.append('capturedAt', options.capturedAt);

@@ -10,11 +10,12 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  uploadEvidence,
+  uploadSvgEvidence,
+  prepareSvgEvidence,
   listEvidences,
   createManifest,
   verifyManifest,
-  computeSha256,
+  type SvgEvidence,
   type EvidenceResponse,
   type ManifestResponse,
   type VerificationResultResponse,
@@ -24,13 +25,13 @@ import { insertTrace } from '@/audit/auditRepository';
 import { useDatabase } from '@/db/DatabaseProvider';
 import { MIN_TOUCH_TARGET } from '@/constants/layout';
 
-interface LocalPhotoDraft {
+interface LocalPhotoDraft extends SvgEvidence {
   id: string;
   name: string;
-  dataUri: string;
-  sha256: string;
-  size: number;
 }
+
+/** Nombre del archivo de la firma en el almacenamiento: el backend toma de ahí la extensión. */
+const SIGNATURE_FILE_NAME = 'firma-olografa.svg';
 
 export default function EvidenceScreen() {
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
@@ -45,7 +46,7 @@ export default function EvidenceScreen() {
 
   // Estados locales para captura y previsualización (Heurística 3: libertad y control)
   const [draftPhotos, setDraftPhotos] = useState<LocalPhotoDraft[]>([]);
-  const [signatureData, setSignatureData] = useState<{ dataUri: string; sha256: string } | null>(null);
+  const [signatureData, setSignatureData] = useState<SvgEvidence | null>(null);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
 
   const loadData = React.useCallback(async () => {
@@ -68,17 +69,16 @@ export default function EvidenceScreen() {
   /** Agrega una fotografía de prueba pericial a la bandeja de borradores */
   const handleAddSamplePhoto = async () => {
     const photoNumber = draftPhotos.length + 1;
-    const fakeContent = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="%233b82f6"/><text x="10" y="50" fill="white">Foto ${photoNumber}</text></svg>`;
-    const hash = await computeSha256(fakeContent);
+    // Se guarda el SVG en sí, no un data URI: es lo que se hashea y lo que se sube (PLAN-78).
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="#3b82f6"/><text x="10" y="50" fill="white">Foto ${photoNumber}</text></svg>`;
+    const evidence = await prepareSvgEvidence(svg);
 
     setDraftPhotos((prev) => [
       ...prev,
       {
+        ...evidence,
         id: `local-photo-${Date.now()}`,
         name: `evidencia-pericial-${photoNumber}.svg`,
-        dataUri: fakeContent,
-        sha256: hash,
-        size: fakeContent.length,
       },
     ]);
   };
@@ -100,20 +100,18 @@ export default function EvidenceScreen() {
 
       // 1. Subir fotos en borrador
       for (const photo of draftPhotos) {
-        const blob = new Blob([photo.dataUri], { type: 'image/svg+xml' });
-        await uploadEvidence(visitId, blob, 'PHOTO', {
+        await uploadSvgEvidence(visitId, photo, 'PHOTO', {
+          fileName: photo.name,
           capturedAt: new Date().toISOString(),
-          clientSha256: photo.sha256,
           metadata: JSON.stringify({ name: photo.name }),
         });
       }
 
       // 2. Subir firma ológrafa si se capturó
       if (signatureData) {
-        const sigBlob = new Blob([signatureData.dataUri], { type: 'image/svg+xml' });
-        await uploadEvidence(visitId, sigBlob, 'SIGNATURE', {
+        await uploadSvgEvidence(visitId, signatureData, 'SIGNATURE', {
+          fileName: SIGNATURE_FILE_NAME,
           capturedAt: new Date().toISOString(),
-          clientSha256: signatureData.sha256,
         });
       }
 
@@ -260,8 +258,8 @@ export default function EvidenceScreen() {
 
         {showSignaturePad && (
           <SignaturePad
-            onSave={(sig) => {
-              setSignatureData(sig);
+            onSave={({ content, sha256, size }) => {
+              setSignatureData({ content, sha256, size });
               setShowSignaturePad(false);
             }}
             onCancel={() => setShowSignaturePad(false)}
