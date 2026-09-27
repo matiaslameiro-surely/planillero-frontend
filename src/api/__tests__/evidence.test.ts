@@ -1,6 +1,11 @@
+import { createHash } from 'node:crypto';
+import { convertFormDataAsync } from 'expo/src/winter/fetch/convertFormData';
+
 import * as tokenStore from '@/auth/tokenStore';
 import {
   computeSha256,
+  prepareSvgEvidence,
+  uploadSvgEvidence,
   uploadEvidence,
   listEvidences,
   createManifest,
@@ -120,3 +125,87 @@ describe('API de Evidencias periciales', () => {
     expect(res.status).toBe('VERIFIED');
   });
 });
+
+/** SHA-256 calculado por fuera del código bajo prueba, como lo hace el servidor sobre los bytes. */
+function serverSha256(bytes: Uint8Array): string {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+/** Bytes exactos de la parte `file` del multipart que se mandó al backend. */
+async function uploadedFile(mockFetch: jest.Mock): Promise<{ file: File; bytes: Uint8Array; declared: string }> {
+  const [, init] = mockFetch.mock.calls[0];
+  const file = (init.body as FormData).get('file') as File;
+  return {
+    file,
+    bytes: new Uint8Array(await file.arrayBuffer()),
+    declared: init.headers['X-Content-SHA256'],
+  };
+}
+
+describe('evidencias SVG: el hash declarado es el de los bytes subidos (PLAN-78)', () => {
+  const photoSvg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="#3b82f6"/><text x="10" y="50" fill="white">Foto 1</text></svg>';
+  /** Misma forma que el SVG que arma `SignaturePad`. */
+  const signatureSvg =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" width="400" height="200" style="background:#ffffff"><path d="M 10.0 20.0 L 30.0 40.0" stroke="#000000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg>';
+
+  it('prepareSvgEvidence hashea los bytes UTF-8 del markup, también con caracteres no ASCII', async () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>Inspección nº 1 · ✓</text></svg>';
+    const evidence = await prepareSvgEvidence(svg);
+    const bytes = Buffer.from(svg, 'utf8');
+
+    expect(evidence.content).toBe(svg);
+    expect(evidence.sha256).toBe(serverSha256(bytes));
+    expect(evidence.size).toBe(bytes.length);
+  });
+
+  const cases = [
+    ['foto', 'PHOTO', 'evidencia-pericial-1.svg', photoSvg],
+    ['firma', 'SIGNATURE', 'firma-olografa.svg', signatureSvg],
+  ] as const;
+
+  it.each(cases)('una %s sube un SVG cuyo SHA-256 es el declarado', async (_name, type, fileName, svg) => {
+    const mockFetch = jest.fn().mockResolvedValue(jsonResponse(201, { id: 'ev-1' }));
+    useFetch(mockFetch);
+    const evidence = await prepareSvgEvidence(svg);
+
+    await uploadSvgEvidence('v-1', evidence, type, { fileName });
+
+    const { file, bytes, declared } = await uploadedFile(mockFetch);
+    expect(declared).toBe(serverSha256(bytes));
+    expect(declared).toBe(evidence.sha256);
+    expect(new TextDecoder().decode(bytes).startsWith('<svg')).toBe(true);
+    expect(file.type).toBe('image/svg+xml');
+    expect(file.name).toBe(fileName);
+  });
+
+  /**
+   * En el dispositivo, el multipart lo arma `expo/fetch` con `convertFormDataAsync`: se usa esa misma
+   * función y se hashea la parte `file` tal como queda en el cuerpo HTTP que recibe el servidor.
+   */
+  it.each(cases)(
+    'en el cuerpo multipart que arma expo/fetch, la parte file de una %s tiene el hash declarado',
+    async (_name, type, fileName, svg) => {
+      const mockFetch = jest.fn().mockResolvedValue(jsonResponse(201, { id: 'ev-1' }));
+      useFetch(mockFetch);
+      const evidence = await prepareSvgEvidence(svg);
+
+      await uploadSvgEvidence('v-1', evidence, type, { fileName });
+
+      const [, init] = mockFetch.mock.calls[0];
+      const { body, boundary } = await convertFormDataAsync(init.body as FormData);
+      const filePart = multipartPart(body, boundary, 'file');
+      expect(init.headers['X-Content-SHA256']).toBe(serverSha256(filePart));
+    },
+  );
+});
+
+/** Extrae los bytes del contenido de una parte de un cuerpo multipart/form-data. */
+function multipartPart(body: Uint8Array, boundary: string, name: string): Uint8Array {
+  const text = Buffer.from(body).toString('latin1');
+  const start = text.indexOf(`name="${name}"`);
+  const contentStart = text.indexOf('\r\n\r\n', start) + 4;
+  const contentEnd = text.indexOf(`\r\n--${boundary}`, contentStart);
+  expect(start).toBeGreaterThanOrEqual(0);
+  return body.slice(contentStart, contentEnd);
+}
