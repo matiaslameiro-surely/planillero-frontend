@@ -1,6 +1,13 @@
+import { StyleSheet, Text, useColorScheme } from 'react-native';
 import { act, create } from 'react-test-renderer';
 
 import { ACCURACY_STYLE, LocationSummary } from '@/components/LocationSummary';
+import { contrastRatio } from '@/constants/contrast';
+import { DARK_THEME, LIGHT_THEME } from '@/constants/layout';
+
+jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
+  default: jest.fn(),
+}));
 
 function render(accuracyMeters: number) {
   let renderer!: ReturnType<typeof create>;
@@ -44,5 +51,34 @@ describe('LocationSummary', () => {
     const { root } = render(8);
 
     expect(root.findAll((node) => String(node.type) === 'TextInput')).toHaveLength(0);
+  });
+});
+
+describe.each([
+  ['claro', 'light', LIGHT_THEME],
+  ['oscuro', 'dark', DARK_THEME],
+] as const)('LocationSummary en tema %s (PLAN-67)', (_name, scheme, theme) => {
+  beforeEach(() => {
+    (useColorScheme as jest.Mock).mockReturnValue(scheme);
+  });
+
+  it('declara el borde tomado del tema', () => {
+    const { root } = render(8);
+    const box = root.findByProps({ accessibilityLabel: 'Ubicación registrada al iniciar la visita' });
+    const boxStyle = StyleSheet.flatten(box.props.style);
+
+    expect(boxStyle.borderColor).toBe(theme.borderDefault);
+  });
+
+  it('los textos toman su color de useThemeColors y tienen contraste >= 4.5:1 contra el fondo de la tarjeta', () => {
+    const { root } = render(8);
+    const texts = root.findAllByType(Text);
+    expect(texts.length).toBeGreaterThanOrEqual(4);
+
+    for (const text of texts) {
+      const style = StyleSheet.flatten(text.props.style);
+      expect(style.color).toBe(theme.textSecondary);
+      expect(contrastRatio(style.color as string, theme.bgSurface)).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });

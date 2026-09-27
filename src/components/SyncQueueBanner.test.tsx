@@ -1,6 +1,8 @@
+import { StyleSheet, Text, View } from 'react-native';
 import { act, create } from 'react-test-renderer';
 
 import { SyncQueueBanner } from '@/components/SyncQueueBanner';
+import { contrastRatio } from '@/constants/contrast';
 
 /** Todo el texto visible del cartel, para poder afirmar sobre lo que ve el operador. */
 function render(props: Parameters<typeof SyncQueueBanner>[0]): string {
@@ -10,6 +12,17 @@ function render(props: Parameters<typeof SyncQueueBanner>[0]): string {
     renderer = create(<SyncQueueBanner {...props} />);
   });
   return JSON.stringify(renderer.toJSON());
+}
+
+function renderBanner(props: Parameters<typeof SyncQueueBanner>[0]) {
+  let renderer!: ReturnType<typeof create>;
+  act(() => {
+    renderer = create(<SyncQueueBanner {...props} />);
+  });
+  return {
+    root: renderer.root,
+    json: JSON.stringify(renderer.toJSON()),
+  };
 }
 
 const base = { pending: 0, failed: 0, justCleared: false, dispatching: false };
@@ -49,5 +62,21 @@ describe('SyncQueueBanner', () => {
   it('el estado se dice con texto y no sólo con color', () => {
     // La tablet se usa al sol, y no todo el mundo distingue colores.
     expect(render({ ...base, pending: 2 })).toContain('pendientes');
+  });
+
+  it('el mensaje «✓ Todo sincronizado» tiene un contraste de al menos 4.5:1 entre el texto y su fondo (PLAN-67)', () => {
+    const { root } = renderBanner({ ...base, justCleared: true });
+    const textNode = root.findAllByType(Text).find((t) => t.props.children === '✓ Todo sincronizado')!;
+    expect(textNode).toBeDefined();
+
+    const bannerView = root.findByType(View);
+    const bannerStyle = StyleSheet.flatten(bannerView.props.style);
+    const textStyle = StyleSheet.flatten(textNode.props.style);
+
+    const textColor = textStyle.color as string;
+    const bgColor = bannerStyle.backgroundColor as string;
+
+    expect(bgColor).toBe('#15803d');
+    expect(contrastRatio(textColor, bgColor)).toBeGreaterThanOrEqual(4.5);
   });
 });
