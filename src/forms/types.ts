@@ -1,5 +1,6 @@
 /** JSON Schema (Draft 2020-12): solo las keywords simples que usa el contrato. */
 export type JsonSchema = {
+  $schema?: string;
   type?: string | string[];
   title?: string;
   description?: string;

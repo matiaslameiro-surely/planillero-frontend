@@ -5,7 +5,7 @@ import { validateField, validateSchema } from '@/forms/validation';
  * Plantilla ficticia con la misma forma que las del seed del backend: declara Draft 2020-12, que es lo
  * que hacía fallar a la clase por defecto de AJV (PLAN-75).
  */
-const schema = {
+const schema: JsonSchema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   title: 'Mantenimiento general',
   type: 'object',
@@ -17,7 +17,7 @@ const schema = {
     serialNumber: { title: 'Número de serie', type: 'string', pattern: '^[A-Z]{3}-[0-9]{4}$' },
     serviceDate: { title: 'Fecha del servicio', type: 'string', format: 'date' },
   },
-} as JsonSchema;
+};
 
 describe('validación de formularios con Draft 2020-12 (PLAN-75)', () => {
   it('compila un schema que declara $schema 2020-12 y acepta datos válidos', () => {
